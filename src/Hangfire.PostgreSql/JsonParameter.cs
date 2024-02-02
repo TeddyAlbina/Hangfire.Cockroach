@@ -6,9 +6,9 @@ using Hangfire.Annotations;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Hangfire.PostgreSql;
+namespace Hangfire.Cockroach;
 
-internal class JsonParameter : SqlMapper.ICustomQueryParameter
+internal sealed class JsonParameter : SqlMapper.ICustomQueryParameter
 {
   [CanBeNull] private readonly object _value;
   private readonly ValueType _type;
@@ -35,8 +35,7 @@ internal class JsonParameter : SqlMapper.ICustomQueryParameter
 
   private string GetDefaultValue()
   {
-    return _type switch
-    {
+    return _type switch {
       ValueType.Object => "{}",
       ValueType.Array => "[]",
       var _ => throw new ArgumentOutOfRangeException(),

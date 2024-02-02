@@ -30,7 +30,7 @@ using Hangfire.Logging;
 using Npgsql;
 using IsolationLevel = System.Data.IsolationLevel;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public sealed class PostgreSqlDistributedLock
   {
@@ -158,6 +158,8 @@ namespace Hangfire.PostgreSql
 
       public static bool TryRemoveLock(string resource, IDbConnection connection, PostgreSqlStorageOptions options, bool onlyExpired)
       {
+        
+
         IDbTransaction trx = null;
         try
         {
@@ -167,13 +169,19 @@ namespace Hangfire.PostgreSql
             trx = TransactionLockHandler.BeginTransactionIfNotPresent(connection);
           }
 
-          DateTime timeout = onlyExpired ? DateTime.UtcNow - options.DistributedLockTimeout : DateTime.MaxValue;
+   
+          var sql = onlyExpired switch {
+            false => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource",
+            _ => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource AND ""acquired"" < @Timeout"
+          };
 
-          int rowsAffected = connection.Execute($@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource AND ""acquired"" < @Timeout",
-            new {
-              Resource = resource,
-              Timeout = timeout,
-            }, trx);
+          object parameters = onlyExpired switch {
+            false => new { Resource = resource },
+            _ => new { Resource = resource, Timeout = DateTime.UtcNow - options.DistributedLockTimeout },
+          };
+
+          int rowsAffected = connection.Execute(sql,
+            parameters, trx);
 
           trx?.Commit();
 

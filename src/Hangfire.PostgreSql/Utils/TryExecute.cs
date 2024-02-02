@@ -22,7 +22,7 @@
 using System;
 // ReSharper disable ArrangeDefaultValueWhenTypeNotEvident
 
-namespace Hangfire.PostgreSql.Utils
+namespace Hangfire.Cockroach.Utils
 {
   public static class Utils
   {

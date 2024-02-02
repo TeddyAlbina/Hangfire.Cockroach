@@ -23,7 +23,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PersistentJobQueueProviderCollection : IEnumerable<IPersistentJobQueueProvider>
   {

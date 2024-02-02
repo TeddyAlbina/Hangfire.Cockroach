@@ -22,7 +22,7 @@
 using System;
 using Npgsql;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public static class PostgreSqlBootstrapperConfigurationExtensions
   {

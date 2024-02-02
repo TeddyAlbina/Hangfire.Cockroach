@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 
-namespace Hangfire.PostgreSql.Tests.Entities
+namespace Hangfire.Cockroach.Tests.Entities
 {
-  public record TestJob(long Id, string InvocationData, string Arguments, DateTime? ExpireAt, string StateName, long? StateId, DateTime CreatedAt);
+  public record TestJob(Guid Id, string InvocationData, string Arguments, DateTime? ExpireAt, string StateName, Guid? StateId, DateTime CreatedAt);
 
   public class TestJobs
   {

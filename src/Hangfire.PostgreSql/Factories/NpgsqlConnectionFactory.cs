@@ -2,7 +2,7 @@
 using Hangfire.Annotations;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Factories;
+namespace Hangfire.Cockroach.Factories;
 
 /// <summary>
 /// Connection factory that creates a new <see cref="NpgsqlConnection"/> based on the connection string.

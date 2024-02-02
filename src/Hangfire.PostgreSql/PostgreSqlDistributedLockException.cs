@@ -21,7 +21,7 @@
 
 using System;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   [Serializable]
   public class PostgreSqlDistributedLockException : Exception

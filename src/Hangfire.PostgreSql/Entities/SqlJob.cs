@@ -1,4 +1,4 @@
-// This file is part of Hangfire.PostgreSql.
+﻿// This file is part of Hangfire.PostgreSql.
 // Copyright � 2014 Frank Hommers <http://hmm.rs/Hangfire.PostgreSql>.
 // 
 // Hangfire.PostgreSql is free software: you can redistribute it and/or modify
@@ -20,14 +20,14 @@
 //    Special thanks goes to him.
 
 using System;
-using Hangfire.PostgreSql.Properties;
+using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.PostgreSql.Entities
+namespace Hangfire.Cockroach.Entities
 {
   [UsedImplicitly]
   internal class SqlJob
   {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string InvocationData { get; set; }
     public string Arguments { get; set; }
     public DateTime CreatedAt { get; set; }

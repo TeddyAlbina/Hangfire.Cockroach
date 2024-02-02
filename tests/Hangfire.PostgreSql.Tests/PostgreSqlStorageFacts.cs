@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Transactions;
-using Hangfire.PostgreSql.Factories;
-using Hangfire.PostgreSql.Tests.Utils;
+using Hangfire.Cockroach.Factories;
+using Hangfire.Cockroach.Tests.Utils;
 using Hangfire.Server;
 using Hangfire.Storage;
 using Npgsql;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlStorageFacts
   {

@@ -19,14 +19,15 @@
 //   
 //    Special thanks goes to him.
 
-using Hangfire.PostgreSql.Properties;
+using System;
+using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.PostgreSql.Entities
+namespace Hangfire.Cockroach.Entities
 {
   [UsedImplicitly]
   internal class JobParameter
   {
-    public long JobId { get; set; }
+    public Guid JobId { get; set; }
     public string Name { get; set; }
     public string Value { get; set; }
   }

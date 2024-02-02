@@ -1,7 +1,7 @@
 ﻿using System;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Factories;
+namespace Hangfire.Cockroach.Factories;
 
 /// <summary>
 /// Connection factory that utilizes an already-existing <see cref="NpgsqlConnection"/>.

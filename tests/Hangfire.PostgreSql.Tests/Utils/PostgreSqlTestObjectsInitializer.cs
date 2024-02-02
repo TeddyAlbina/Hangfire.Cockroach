@@ -25,7 +25,7 @@ using System.IO;
 using System.Reflection;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Tests.Utils
+namespace Hangfire.Cockroach.Tests.Utils
 {
   internal static class PostgreSqlTestObjectsInitializer
   {
@@ -34,7 +34,7 @@ namespace Hangfire.PostgreSql.Tests.Utils
       if (connection == null) throw new ArgumentNullException(nameof(connection));
 
       string script = GetStringResource(typeof(PostgreSqlTestObjectsInitializer).GetTypeInfo().Assembly,
-        "Hangfire.PostgreSql.Tests.Scripts.Clean.sql").Replace("'hangfire'", $"'{ConnectionUtils.GetSchemaName()}'");
+        "Hangfire.Cockroach.Tests.Scripts.Clean.sql").Replace("'hangfire'", $"'{ConnectionUtils.GetSchemaName()}'");
 
       using NpgsqlTransaction transaction = connection.BeginTransaction(IsolationLevel.Serializable);
       using NpgsqlCommand command = new(script, connection, transaction);

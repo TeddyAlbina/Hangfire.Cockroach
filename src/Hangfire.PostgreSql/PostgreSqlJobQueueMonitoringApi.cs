@@ -24,7 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Dapper;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   internal class PostgreSqlJobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
   {
@@ -41,12 +41,12 @@ namespace Hangfire.PostgreSql
       return _storage.UseConnection(null, connection => connection.Query<string>(sqlQuery).ToList());
     }
 
-    public IEnumerable<long> GetEnqueuedJobIds(string queue, int from, int perPage)
+    public IEnumerable<Guid> GetEnqueuedJobIds(string queue, int from, int perPage)
     {
       return GetQueuedOrFetchedJobIds(queue, false, from, perPage);
     }
 
-    public IEnumerable<long> GetFetchedJobIds(string queue, int from, int perPage)
+    public IEnumerable<Guid> GetFetchedJobIds(string queue, int from, int perPage)
     {
       return GetQueuedOrFetchedJobIds(queue, true, from, perPage);
     }
@@ -77,7 +77,7 @@ namespace Hangfire.PostgreSql
       };
     }
 
-    private IEnumerable<long> GetQueuedOrFetchedJobIds(string queue, bool fetched, int from, int perPage)
+    private IEnumerable<Guid> GetQueuedOrFetchedJobIds(string queue, bool fetched, int from, int perPage)
     {
       string sqlQuery = $@"
         SELECT j.""id"" 
@@ -86,11 +86,11 @@ namespace Hangfire.PostgreSql
         WHERE jq.""queue"" = @Queue 
         AND jq.""fetchedat"" {(fetched ? "IS NOT NULL" : "IS NULL")}
         AND j.""id"" IS NOT NULL
-        ORDER BY jq.""fetchedat"", jq.""jobid""
+        ORDER BY jq.""fetchedat"", jq.""serialid""
         LIMIT @Limit OFFSET @Offset;
       ";
 
-      return _storage.UseConnection(null, connection => connection.Query<long>(sqlQuery,
+      return _storage.UseConnection(null, connection => connection.Query<Guid>(sqlQuery,
           new { Queue = queue, Offset = from, Limit = perPage })
         .ToList());
     }

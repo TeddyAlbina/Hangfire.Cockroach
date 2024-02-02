@@ -1,7 +1,7 @@
 ﻿using System;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlStorageOptionsFacts
   {

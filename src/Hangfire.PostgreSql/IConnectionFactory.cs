@@ -21,7 +21,7 @@
 
 using Npgsql;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   /// <summary>
   /// Connection factory for creating <see cref="NpgsqlConnection"/> at runtime. 

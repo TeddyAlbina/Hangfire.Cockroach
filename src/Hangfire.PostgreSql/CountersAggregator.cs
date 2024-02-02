@@ -26,7 +26,7 @@ using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Server;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
 #pragma warning disable 618
   internal class CountersAggregator : IServerComponent

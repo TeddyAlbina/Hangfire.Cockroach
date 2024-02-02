@@ -26,12 +26,12 @@ using System.Globalization;
 using System.Linq;
 using Dapper;
 using Hangfire.Common;
-using Hangfire.PostgreSql.Entities;
+using Hangfire.Cockroach.Entities;
 using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlMonitoringApi : IMonitoringApi
   {
@@ -118,7 +118,7 @@ namespace Hangfire.PostgreSql
           .ToList();
 
         List<ServerDto> result = servers.Select(item => new ServerDto {
-          Name = item.Server.Id,
+          Name = item.Server.Id.ToString(),
           Heartbeat = item.Server.LastHeartbeat,
           Queues = item.Data.Queues,
           StartedAt = item.Data.StartedAt ?? DateTime.MinValue,
@@ -182,7 +182,7 @@ namespace Hangfire.PostgreSql
 
       foreach (var tuple in tuples)
       {
-        IEnumerable<long> enqueuedJobIds = tuple.Monitoring.GetEnqueuedJobIds(tuple.Queue, 0, 5);
+        IEnumerable<Guid> enqueuedJobIds = tuple.Monitoring.GetEnqueuedJobIds(tuple.Queue, 0, 5);
         EnqueuedAndFetchedCountDto counters = tuple.Monitoring.GetEnqueuedAndFetchedCount(tuple.Queue);
 
         result.Add(new QueueWithTopEnqueuedJobsDto {
@@ -199,7 +199,7 @@ namespace Hangfire.PostgreSql
     public JobList<EnqueuedJobDto> EnqueuedJobs(string queue, int from, int perPage)
     {
       IPersistentJobQueueMonitoringApi queueApi = GetQueueApi(queue);
-      IEnumerable<long> enqueuedJobIds = queueApi.GetEnqueuedJobIds(queue, from, perPage);
+      IEnumerable<Guid> enqueuedJobIds = queueApi.GetEnqueuedJobIds(queue, from, perPage);
 
       return EnqueuedJobs(enqueuedJobIds);
     }
@@ -207,7 +207,7 @@ namespace Hangfire.PostgreSql
     public JobList<FetchedJobDto> FetchedJobs(string queue, int from, int perPage)
     {
       IPersistentJobQueueMonitoringApi queueApi = GetQueueApi(queue);
-      IEnumerable<long> fetchedJobIds = queueApi.GetFetchedJobIds(queue, from, perPage);
+      IEnumerable<Guid> fetchedJobIds = queueApi.GetFetchedJobIds(queue, from, perPage);
 
       return FetchedJobs(fetchedJobIds);
     }
@@ -237,9 +237,11 @@ namespace Hangfire.PostgreSql
           SELECT ""jobid"" ""JobId"", ""name"" ""Name"", ""reason"" ""Reason"", ""createdat"" ""CreatedAt"", ""data"" ""Data"" 
           FROM ""{_storage.Options.SchemaName}"".""state"" 
           WHERE ""jobid"" = @Id 
-          ORDER BY ""id"" DESC;
+          ORDER BY ""serialid"" DESC;
         ";
-        using SqlMapper.GridReader multi = connection.QueryMultiple(sql, new { Id = Convert.ToInt64(jobId, CultureInfo.InvariantCulture) });
+
+
+        using SqlMapper.GridReader multi = connection.QueryMultiple(sql, new { Id = Guid.Parse(jobId) });
         SqlJob job = multi.Read<SqlJob>().SingleOrDefault();
         if (job == null)
         {
@@ -417,7 +419,7 @@ namespace Hangfire.PostgreSql
       return monitoringApi;
     }
 
-    private JobList<EnqueuedJobDto> EnqueuedJobs(IEnumerable<long> jobIds)
+    private JobList<EnqueuedJobDto> EnqueuedJobs(IEnumerable<Guid> jobIds)
     {
       string enqueuedJobsSql = $@"
         SELECT ""j"".""id"" ""Id"", ""j"".""invocationdata"" ""InvocationData"", ""j"".""arguments"" ""Arguments"", ""j"".""createdat"" ""CreatedAt"", 
@@ -474,7 +476,7 @@ namespace Hangfire.PostgreSql
         FROM ""{_storage.Options.SchemaName}"".""job"" ""j""
         LEFT JOIN ""{_storage.Options.SchemaName}"".""state"" ""s"" ON ""j"".""stateid"" = ""s"".""id""
         WHERE ""j"".""statename"" = @StateName 
-        ORDER BY ""j"".""id"" DESC
+        ORDER BY ""j"".""insertedat"" DESC
         LIMIT @Limit OFFSET @Offset;
       ";
 
@@ -512,7 +514,7 @@ namespace Hangfire.PostgreSql
     }
 
     private JobList<FetchedJobDto> FetchedJobs(
-      IEnumerable<long> jobIds)
+      IEnumerable<Guid> jobIds)
     {
       string fetchedJobsSql = $@"
         SELECT ""j"".""id"" ""Id"", ""j"".""invocationdata"" ""InvocationData"", ""j"".""arguments"" ""Arguments"", 

@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Utils;
+namespace Hangfire.Cockroach.Utils;
 
 internal static class DbConnectionExtensions
 {

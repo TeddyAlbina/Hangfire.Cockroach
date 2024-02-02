@@ -4,14 +4,18 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Dapper;
-using Hangfire.PostgreSql.Tests.Utils;
+using Hangfire.Cockroach.Tests.Utils;
 using Npgsql;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class ExpirationManagerFacts : IClassFixture<PostgreSqlStorageFixture>
   {
+    private readonly Guid Id1 = new Guid("70F8F27E-F0EC-4EDA-A242-8835E14D7D31");
+    private readonly Guid Id2 = new Guid("66D8F927-D5DD-4C42-A6B0-E683CA585069");
+    private readonly Guid Id3 = new Guid("57354D89-8A41-42ED-9F78-DC3FD9F6DD32");
+
     private readonly PostgreSqlStorageFixture _fixture;
     private readonly CancellationToken _token;
 
@@ -34,12 +38,13 @@ namespace Hangfire.PostgreSql.Tests
     public void Execute_RemovesOutdatedRecords()
     {
       UseConnection((connection, manager) => {
-        long CreateEntry(string key)
+
+        Guid CreateEntry(string key)
         {
           return CreateExpirationEntry(connection, DateTime.UtcNow.AddMonths(-1), key);
         }
 
-        List<long> entryIds = Enumerable.Range(1, 3).Select(i => CreateEntry($"key{i}")).ToList();
+        List<Guid> entryIds = Enumerable.Range(1, 3).Select(i => CreateEntry($"key{i}")).ToList();
 
         manager.Execute(_token);
 
@@ -52,7 +57,7 @@ namespace Hangfire.PostgreSql.Tests
     public void Execute_DoesNotRemoveEntries_WithNoExpirationTimeSet()
     {
       UseConnection((connection, manager) => {
-        long entryId = CreateExpirationEntry(connection, null);
+        Guid entryId = CreateExpirationEntry(connection, null);
 
         manager.Execute(_token);
 
@@ -65,7 +70,7 @@ namespace Hangfire.PostgreSql.Tests
     public void Execute_DoesNotRemoveEntries_WithFreshExpirationTime()
     {
       UseConnection((connection, manager) => {
-        long entryId = CreateExpirationEntry(connection, DateTime.Now.AddMonths(1));
+        Guid entryId = CreateExpirationEntry(connection, DateTime.Now.AddMonths(1));
 
         manager.Execute(_token);
 
@@ -190,7 +195,7 @@ namespace Hangfire.PostgreSql.Tests
       });
     }
 
-    private static long CreateExpirationEntry(NpgsqlConnection connection, DateTime? expireAt, string key = "key")
+    private static Guid CreateExpirationEntry(NpgsqlConnection connection, DateTime? expireAt, string key = "key")
     {
       string insertSqlNull = $@"
         INSERT INTO ""{GetSchemaName()}"".""counter""(""key"", ""value"", ""expireat"")
@@ -207,10 +212,10 @@ namespace Hangfire.PostgreSql.Tests
         : string.Format(CultureInfo.InvariantCulture, insertSqlValue,
           ((long)(DateTime.UtcNow - expireAt.Value).TotalSeconds).ToString(CultureInfo.InvariantCulture));
 
-      return connection.QuerySingle<long>(insertSql, new { Key = key });
+      return connection.QuerySingle<Guid>(insertSql, new { Key = key });
     }
 
-    private static bool IsEntryExpired(NpgsqlConnection connection, long entryId)
+    private static bool IsEntryExpired(NpgsqlConnection connection, Guid entryId)
     {
       return connection.QuerySingle<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""counter"" WHERE ""id"" = @Id", new { Id = entryId }) == 0;
     }

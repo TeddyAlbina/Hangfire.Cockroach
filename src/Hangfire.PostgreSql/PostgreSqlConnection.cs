@@ -29,13 +29,13 @@ using System.Linq;
 using System.Threading;
 using Dapper;
 using Hangfire.Common;
-using Hangfire.PostgreSql.Entities;
+using Hangfire.Cockroach.Entities;
 using Hangfire.Server;
 using Hangfire.Storage;
 using Npgsql;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlConnection : JobStorageConnection
   {
@@ -122,13 +122,13 @@ namespace Hangfire.PostgreSql
       InvocationData invocationData = InvocationData.SerializeJob(job);
 
       return _storage.UseTransaction(_dedicatedConnection, (connection, transaction) => {
-        string jobId = connection.QuerySingle<long>(createJobSql,
+        string jobId = connection.QuerySingle<Guid>(createJobSql,
           new {
             InvocationData = new JsonParameter(SerializationHelper.Serialize(invocationData)),
             Arguments = new JsonParameter(invocationData.Arguments, JsonParameter.ValueType.Array),
             CreatedAt = createdAt,
             ExpireAt = createdAt.Add(expireIn),
-          }).ToString(CultureInfo.InvariantCulture);
+          }).ToString();
 
         if (parameters.Count > 0)
         {
@@ -137,7 +137,7 @@ namespace Hangfire.PostgreSql
           foreach (KeyValuePair<string, string> parameter in parameters)
           {
             parameterArray[parameterIndex++] = new {
-              JobId = Convert.ToInt64(jobId, CultureInfo.InvariantCulture),
+              JobId = Guid.Parse(jobId),
               Name = parameter.Key,
               parameter.Value,
             };
@@ -170,7 +170,7 @@ namespace Hangfire.PostgreSql
 
       SqlJob jobData = _storage.UseConnection(_dedicatedConnection,
         connection => connection
-          .Query<SqlJob>(sql, new { Id = Convert.ToInt64(id, CultureInfo.InvariantCulture) })
+          .Query<SqlJob>(sql, new { Id = Guid.Parse(id) })
           .SingleOrDefault());
 
       if (jobData == null)
@@ -218,7 +218,7 @@ namespace Hangfire.PostgreSql
 
       SqlState sqlState = _storage.UseConnection(_dedicatedConnection,
         connection => connection
-          .Query<SqlState>(sql, new { JobId = Convert.ToInt64(jobId, CultureInfo.InvariantCulture) })
+          .Query<SqlState>(sql, new { JobId = Guid.Parse(jobId) })
           .SingleOrDefault());
       return sqlState == null
         ? null
@@ -241,30 +241,15 @@ namespace Hangfire.PostgreSql
         throw new ArgumentNullException(nameof(name));
       }
 
-      string sql = $@"
-        WITH ""inputvalues"" AS (
-          SELECT @JobId ""jobid"", @Name ""name"", @Value ""value""
-        ), ""updatedrows"" AS ( 
-          UPDATE ""{_options.SchemaName}"".""jobparameter"" ""updatetarget""
-          SET ""value"" = ""inputvalues"".""value""
-          FROM ""inputvalues""
-          WHERE ""updatetarget"".""jobid"" = ""inputvalues"".""jobid""
-          AND ""updatetarget"".""name"" = ""inputvalues"".""name""
-          RETURNING ""updatetarget"".""jobid"", ""updatetarget"".""name""
-        )
-        INSERT INTO ""{_options.SchemaName}"".""jobparameter""(""jobid"", ""name"", ""value"")
-        SELECT ""jobid"", ""name"", ""value"" 
-        FROM ""inputvalues"" ""insertvalues""
-        WHERE NOT EXISTS (
-          SELECT 1 
-          FROM ""updatedrows"" 
-          WHERE ""updatedrows"".""jobid"" = ""insertvalues"".""jobid"" 
-          AND ""updatedrows"".""name"" = ""insertvalues"".""name""
-        );
-      ";
+      var sql = $"""
+        INSERT INTO "{_options.SchemaName}"."jobparameter" ("jobid", "name", "value")
+        VALUES (@JobId, @Name, @Value) ON CONFLICT (jobid, name) DO
+        UPDATE
+         SET "value" = @Value
+        """;
 
       _storage.UseConnection(_dedicatedConnection, connection => connection
-        .Execute(sql, new { JobId = Convert.ToInt64(id, CultureInfo.InvariantCulture), Name = name, Value = value }));
+        .Execute(sql, new { JobId = Guid.Parse(id), Name = name, Value = value }));
     }
 
     public override string GetJobParameter(string id, string name)
@@ -282,7 +267,7 @@ namespace Hangfire.PostgreSql
       string query = $@"SELECT ""value"" FROM ""{_options.SchemaName}"".""jobparameter"" WHERE ""jobid"" = @Id AND ""name"" = @Name;";
 
       return _storage.UseConnection(_dedicatedConnection, connection => connection
-        .QuerySingleOrDefault<string>(query, new { Id = Convert.ToInt64(id, CultureInfo.InvariantCulture), Name = name }));
+        .QuerySingleOrDefault<string>(query, new { Id = Guid.Parse(id), Name = name }));
     }
 
     public override HashSet<string> GetAllItemsFromSet(string key)
@@ -336,26 +321,34 @@ namespace Hangfire.PostgreSql
         throw new ArgumentNullException(nameof(keyValuePairs));
       }
 
-      string sql = $@"
-        WITH ""inputvalues"" AS (
-          SELECT @Key ""key"", @Field ""field"", @Value ""value""
-        ), ""updatedrows"" AS ( 
-          UPDATE ""{_options.SchemaName}"".""hash"" ""updatetarget""
-          SET ""value"" = ""inputvalues"".""value""
-          FROM ""inputvalues""
-          WHERE ""updatetarget"".""key"" = ""inputvalues"".""key""
-          AND ""updatetarget"".""field"" = ""inputvalues"".""field""
-          RETURNING ""updatetarget"".""key"", ""updatetarget"".""field""
-        )
-        INSERT INTO ""{_options.SchemaName}"".""hash""(""key"", ""field"", ""value"")
-        SELECT ""key"", ""field"", ""value"" FROM ""inputvalues"" ""insertvalues""
-        WHERE NOT EXISTS (
-          SELECT 1 
-          FROM ""updatedrows"" 
-          WHERE ""updatedrows"".""key"" = ""insertvalues"".""key"" 
-          AND ""updatedrows"".""field"" = ""insertvalues"".""field""
-        );
-      ";
+      //string sql = $@"
+      //  WITH ""inputvalues"" AS (
+      //    SELECT @Key ""key"", @Field ""field"", @Value ""value""
+      //  ), ""updatedrows"" AS ( 
+      //    UPDATE ""{_options.SchemaName}"".""hash"" ""updatetarget""
+      //    SET ""value"" = ""inputvalues"".""value""
+      //    FROM ""inputvalues""
+      //    WHERE ""updatetarget"".""key"" = ""inputvalues"".""key""
+      //    AND ""updatetarget"".""field"" = ""inputvalues"".""field""
+      //    RETURNING ""updatetarget"".""key"", ""updatetarget"".""field""
+      //  )
+      //  INSERT INTO ""{_options.SchemaName}"".""hash""(""key"", ""field"", ""value"")
+      //  SELECT ""key"", ""field"", ""value"" FROM ""inputvalues"" ""insertvalues""
+      //  WHERE NOT EXISTS (
+      //    SELECT 1 
+      //    FROM ""updatedrows"" 
+      //    WHERE ""updatedrows"".""key"" = ""insertvalues"".""key"" 
+      //    AND ""updatedrows"".""field"" = ""insertvalues"".""field""
+      //  );
+      //";
+
+      var sql = $"""
+        INSERT INTO "{_options.SchemaName}"."hash"("key", "field", "value")
+        VALUES (@Key, @Field, @Value) ON CONFLICT (key, field) 
+        DO UPDATE
+            SET "value" = @Value
+        RETURNING "key", "field"
+        """;
 
       Stopwatch executionTimer = Stopwatch.StartNew();
       while (true)
@@ -422,25 +415,14 @@ namespace Hangfire.PostgreSql
         StartedAt = DateTime.UtcNow,
       };
 
-      string sql = $@"
-        WITH ""inputvalues"" AS (
-          SELECT @Id ""id"", @Data ""data"", NOW() ""lastheartbeat""
-        ), ""updatedrows"" AS ( 
-          UPDATE ""{_options.SchemaName}"".""server"" ""updatetarget""
-          SET ""data"" = ""inputvalues"".""data"", ""lastheartbeat"" = ""inputvalues"".""lastheartbeat""
-          FROM ""inputvalues""
-          WHERE ""updatetarget"".""id"" = ""inputvalues"".""id""
-          RETURNING ""updatetarget"".""id""
-        )
-        INSERT INTO ""{_options.SchemaName}"".""server""(""id"", ""data"", ""lastheartbeat"")
-        SELECT ""id"", ""data"", ""lastheartbeat"" 
-        FROM ""inputvalues"" ""insertvalues""
-        WHERE NOT EXISTS (
-          SELECT 1 
-          FROM ""updatedrows"" 
-          WHERE ""updatedrows"".""id"" = ""insertvalues"".""id"" 
-        );
-      ";
+      var sql = $"""
+        INSERT INTO "{_options.SchemaName}"."server" ("id", "data", "lastheartbeat")
+        VALUES(@Id, @Data, NOW())
+        ON CONFLICT (id) DO UPDATE
+        SET "data" = @Data,
+            "lastheartbeat" = NOW()
+        RETURNING "id"
+        """;
 
       _storage.UseConnection(_dedicatedConnection, connection => connection
         .Execute(sql, new { Id = serverId, Data = new JsonParameter(SerializationHelper.Serialize(data)) }));
@@ -513,7 +495,7 @@ namespace Hangfire.PostgreSql
         throw new ArgumentNullException(nameof(key));
       }
 
-      string query = $@"SELECT ""value"" FROM ""{_options.SchemaName}"".""list"" WHERE ""key"" = @Key ORDER BY ""id"" DESC";
+      string query = $@"SELECT ""value"" FROM ""{_options.SchemaName}"".""list"" WHERE ""key"" = @Key ORDER BY ""serialid"" DESC";
 
       return _storage.UseConnection(_dedicatedConnection, connection => connection
         .Query<string>(query, new { Key = key })
@@ -576,7 +558,7 @@ namespace Hangfire.PostgreSql
           SELECT ""value"" 
           FROM ""{_options.SchemaName}"".""list""
           WHERE ""key"" = @Key
-          ORDER BY ""id"" DESC
+          ORDER BY ""serialid"" DESC
           LIMIT @Limit OFFSET @Offset
         ";
 
@@ -625,7 +607,7 @@ namespace Hangfire.PostgreSql
           SELECT ""value"" 
           FROM ""{_options.SchemaName}"".""set""
           WHERE ""key"" = @Key
-          ORDER BY ""id"" 
+          ORDER BY ""createdat"" 
           LIMIT @Limit OFFSET @Offset
         ";
 

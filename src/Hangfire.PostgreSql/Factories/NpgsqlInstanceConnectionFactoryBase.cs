@@ -2,7 +2,7 @@
 using Hangfire.Annotations;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Factories;
+namespace Hangfire.Cockroach.Factories;
 
 public abstract class NpgsqlInstanceConnectionFactoryBase : IConnectionFactory
 {

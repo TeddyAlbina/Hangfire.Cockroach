@@ -5,7 +5,7 @@ using Dapper;
 using Npgsql;
 using Xunit.Sdk;
 
-namespace Hangfire.PostgreSql.Tests.Utils
+namespace Hangfire.Cockroach.Tests.Utils
 {
   public class CleanDatabaseAttribute : BeforeAfterTestAttribute
   {

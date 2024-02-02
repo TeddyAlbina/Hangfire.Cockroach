@@ -28,7 +28,7 @@ using System.Resources;
 using Hangfire.Logging;
 using Npgsql;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public static class PostgreSqlObjectsInstaller
   {
@@ -54,7 +54,7 @@ namespace Hangfire.PostgreSql
           try
           {
             script = GetStringResource(typeof(PostgreSqlObjectsInstaller).GetTypeInfo().Assembly,
-              $"Hangfire.PostgreSql.Scripts.Install.v{version.ToString(CultureInfo.InvariantCulture)}.sql");
+              $"Hangfire.Cockroach.Scripts.Install.v{version.ToString(CultureInfo.InvariantCulture)}.sql");
           }
           catch (MissingManifestResourceException)
           {
@@ -81,7 +81,7 @@ namespace Hangfire.PostgreSql
             }
             catch (PostgresException ex)
             {
-              if ((ex.MessageText ?? "") != "version-already-applied")
+              if (ex.SqlState != "23505" || (ex.MessageText ?? "") != "version-already-applied")
               {
                 throw;
               }

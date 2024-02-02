@@ -20,8 +20,11 @@
 //    Special thanks goes to him.
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlStorageOptions
   {
@@ -124,6 +127,8 @@ namespace Hangfire.PostgreSql
     public string SchemaName { get; set; }
     public bool EnableTransactionScopeEnlistment { get; set; }
     public bool EnableLongPolling { get; set; }
+
+    public string? ChangeFeedQuery { get; set; }
 
     private static void ThrowIfValueIsNotPositive(TimeSpan value, string fieldName)
     {

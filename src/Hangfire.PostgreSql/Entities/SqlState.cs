@@ -20,14 +20,14 @@
 //    Special thanks goes to him.
 
 using System;
-using Hangfire.PostgreSql.Properties;
+using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.PostgreSql.Entities
+namespace Hangfire.Cockroach.Entities
 {
   [UsedImplicitly]
   internal class SqlState
   {
-    public long JobId { get; set; }
+    public Guid JobId { get; set; }
     public string Name { get; set; }
     public string Reason { get; set; }
     public DateTime CreatedAt { get; set; }

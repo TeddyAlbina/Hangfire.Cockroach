@@ -23,7 +23,7 @@ using System.Data;
 using System.Threading;
 using Hangfire.Storage;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public interface IPersistentJobQueue
   {

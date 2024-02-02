@@ -20,14 +20,14 @@
 //    Special thanks goes to him.
 
 using System;
-using Hangfire.PostgreSql.Properties;
+using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.PostgreSql.Entities
+namespace Hangfire.Cockroach.Entities
 {
   [UsedImplicitly]
   internal class Server
   {
-    public string Id { get; set; }
+    public Guid Id { get; set; }
     public string Data { get; set; }
     public DateTime LastHeartbeat { get; set; }
   }

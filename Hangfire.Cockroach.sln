@@ -9,9 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0D30A51B-814F-474E-93B8-44E9C155255C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.PostgreSql", "src\Hangfire.PostgreSql\Hangfire.PostgreSql.csproj", "{3E4DBC41-F38E-4D1C-A6A7-206A132A29D6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Cockroach", "src\Hangfire.PostgreSql\Hangfire.Cockroach.csproj", "{3E4DBC41-F38E-4D1C-A6A7-206A132A29D6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.PostgreSql.Tests", "tests\Hangfire.PostgreSql.Tests\Hangfire.PostgreSql.Tests.csproj", "{6044A48D-730B-4D1F-B03A-EB2B458DAF53}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.Cockroach.Tests", "tests\Hangfire.PostgreSql.Tests\Hangfire.Cockroach.Tests.csproj", "{6044A48D-730B-4D1F-B03A-EB2B458DAF53}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{AAA78654-9846-4870-A13C-D9DBAF0792C4}"
 	ProjectSection(SolutionItems) = preProject

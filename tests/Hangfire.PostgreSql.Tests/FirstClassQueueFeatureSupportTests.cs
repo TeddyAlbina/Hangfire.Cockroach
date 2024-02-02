@@ -1,11 +1,11 @@
-using System.Threading;
-using Hangfire.PostgreSql.Tests.Entities;
-using Hangfire.PostgreSql.Tests.Utils;
+﻿using System.Threading;
+using Hangfire.Cockroach.Tests.Entities;
+using Hangfire.Cockroach.Tests.Utils;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests;
+namespace Hangfire.Cockroach.Tests;
 
 public class FirstClassQueueFeatureSupportTests
 {
@@ -29,7 +29,7 @@ public class FirstClassQueueFeatureSupportTests
     BackgroundJob.Enqueue<TestJobs>("offline", job => job.Run("offline"));
 
     BackgroundJobServer unused = new(new BackgroundJobServerOptions() {
-      Queues = new[] { "critical" },
+      Queues = ["critical"],
     });
 
     Thread.Sleep(200);

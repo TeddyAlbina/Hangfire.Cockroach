@@ -31,7 +31,7 @@ using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlWriteOnlyTransaction : JobStorageTransaction
   {
@@ -88,7 +88,7 @@ namespace Hangfire.PostgreSql
       ";
 
       QueueCommand(con => con.Execute(sql,
-        new { Id = Convert.ToInt64(jobId, CultureInfo.InvariantCulture) }));
+        new { Id = Guid.Parse(jobId) }));
     }
 
     public override void PersistJob(string jobId)
@@ -100,7 +100,7 @@ namespace Hangfire.PostgreSql
       ";
 
       QueueCommand(con => con.Execute(sql,
-        new { Id = Convert.ToInt64(jobId, CultureInfo.InvariantCulture) }));
+        new { Id = Guid.Parse(jobId) }));
     }
 
     public override void SetJobState(string jobId, IState state)
@@ -118,12 +118,12 @@ namespace Hangfire.PostgreSql
 
       QueueCommand(con => con.Execute(addAndSetStateSql,
         new {
-          JobId = Convert.ToInt64(jobId, CultureInfo.InvariantCulture),
+          JobId = Guid.Parse(jobId),
           state.Name,
           state.Reason,
           CreatedAt = DateTime.UtcNow,
           Data = new JsonParameter(SerializationHelper.Serialize(state.SerializeData())),
-          Id = Convert.ToInt64(jobId, CultureInfo.InvariantCulture),
+          Id = Guid.Parse(jobId),
         }));
     }
 
@@ -136,7 +136,7 @@ namespace Hangfire.PostgreSql
 
       QueueCommand(con => con.Execute(addStateSql,
         new {
-          JobId = Convert.ToInt64(jobId, CultureInfo.InvariantCulture),
+          JobId = Guid.Parse(jobId),
           state.Name,
           state.Reason,
           CreatedAt = DateTime.UtcNow,
@@ -247,7 +247,7 @@ namespace Hangfire.PostgreSql
             SELECT ""id"" 
             FROM ""{_storage.Options.SchemaName}"".""list"" AS keep
             WHERE keep.""key"" = source.""key""
-            ORDER BY ""id"" 
+            ORDER BY ""serialid"" DESC
             OFFSET @Offset LIMIT @Limit
         );
       ";
@@ -268,27 +268,13 @@ namespace Hangfire.PostgreSql
         throw new ArgumentNullException(nameof(keyValuePairs));
       }
 
-      string sql = $@"
-        WITH ""inputvalues"" AS (
-	        SELECT @Key ""key"", @Field ""field"", @Value ""value""
-        ), ""updatedrows"" AS ( 
-	        UPDATE ""{_storage.Options.SchemaName}"".""hash"" ""updatetarget""
-	        SET ""value"" = ""inputvalues"".""value""
-	        FROM ""inputvalues""
-	        WHERE ""updatetarget"".""key"" = ""inputvalues"".""key""
-	        AND ""updatetarget"".""field"" = ""inputvalues"".""field""
-	        RETURNING ""updatetarget"".""key"", ""updatetarget"".""field""
-        )
-        INSERT INTO ""{_storage.Options.SchemaName}"".""hash""(""key"", ""field"", ""value"")
-        SELECT ""key"", ""field"", ""value"" 
-        FROM ""inputvalues"" ""insertvalues""
-        WHERE NOT EXISTS (
-	        SELECT 1 
-	        FROM ""updatedrows"" 
-	        WHERE ""updatedrows"".""key"" = ""insertvalues"".""key"" 
-	        AND ""updatedrows"".""field"" = ""insertvalues"".""field""
-        );
-      ";
+      var sql = $"""
+        INSERT INTO "{_storage.Options.SchemaName}"."hash" ("key", "field", "value")
+        VALUES (@Key, @Field, @Value) ON CONFLICT (key, field) DO
+        UPDATE
+          SET "value" = @Value
+        """;
+
       foreach (KeyValuePair<string, string> keyValuePair in keyValuePairs)
       {
         KeyValuePair<string, string> pair = keyValuePair;

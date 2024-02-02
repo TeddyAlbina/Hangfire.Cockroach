@@ -20,14 +20,14 @@
 //    Special thanks goes to him.
 
 using System;
-using Hangfire.PostgreSql.Properties;
+using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.PostgreSql.Entities
+namespace Hangfire.Cockroach.Entities
 {
   [UsedImplicitly]
   internal class SqlHash
   {
-    public long Id { get; set; }
+    public Guid Id { get; set; }
     public string Key { get; set; }
     public string Field { get; set; }
     public string Value { get; set; }

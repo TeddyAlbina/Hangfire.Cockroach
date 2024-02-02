@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Hangfire.PostgreSql.Utils
+namespace Hangfire.Cockroach.Utils
 {
   /// <summary>
   /// Represents a registry for managing AutoResetEvent instances using event keys.

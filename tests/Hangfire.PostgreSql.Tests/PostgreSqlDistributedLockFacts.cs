@@ -3,12 +3,12 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using Dapper;
-using Hangfire.PostgreSql.Tests.Utils;
+using Hangfire.Cockroach.Tests.Utils;
 using Moq;
 using Npgsql;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlDistributedLockFacts : IDisposable
   {

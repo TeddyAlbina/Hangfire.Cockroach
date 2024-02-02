@@ -27,14 +27,14 @@ using System.Text;
 using System.Transactions;
 using Hangfire.Annotations;
 using Hangfire.Logging;
-using Hangfire.PostgreSql.Factories;
-using Hangfire.PostgreSql.Utils;
+using Hangfire.Cockroach.Factories;
+using Hangfire.Cockroach.Utils;
 using Hangfire.Server;
 using Hangfire.Storage;
 using Npgsql;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlStorage : JobStorage
   {

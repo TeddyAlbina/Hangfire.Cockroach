@@ -1,6 +1,6 @@
 ﻿using Npgsql;
 
-namespace Hangfire.PostgreSql.Tests.Utils
+namespace Hangfire.Cockroach.Tests.Utils
 {
   public class DefaultConnectionFactory : IConnectionFactory
   {

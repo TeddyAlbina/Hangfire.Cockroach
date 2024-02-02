@@ -23,7 +23,7 @@ using System;
 using Dapper;
 using Hangfire.Storage;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlFetchedJob : IFetchedJob
   {
@@ -34,7 +34,7 @@ namespace Hangfire.PostgreSql
 
     public PostgreSqlFetchedJob(
       PostgreSqlStorage storage,
-      long id,
+      Guid id,
       string jobId,
       string queue)
     {
@@ -45,7 +45,7 @@ namespace Hangfire.PostgreSql
       Queue = queue ?? throw new ArgumentNullException(nameof(queue));
     }
 
-    public long Id { get; }
+    public Guid Id { get; }
     public string Queue { get; }
     public string JobId { get; }
 

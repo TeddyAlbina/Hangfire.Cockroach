@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using Dapper;
+using Hangfire.Cockroach.Tests.Utils;
 using Hangfire.Common;
-using Hangfire.PostgreSql.Tests.Utils;
 using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
@@ -11,7 +10,7 @@ using Moq;
 using Npgsql;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlMonitoringApiFacts : IClassFixture<PostgreSqlStorageFixture>
   {
@@ -34,7 +33,7 @@ namespace Hangfire.PostgreSql.Tests
       InvocationData invocationData = InvocationData.SerializeJob(job);
 
       UseConnection(connection => {
-        long jobId = connection.QuerySingle<long>(arrangeSql,
+        var jobId = connection.QuerySingle<Guid>(arrangeSql,
           new {
             InvocationData = new JsonParameter(SerializationHelper.Serialize(invocationData)),
             Arguments = new JsonParameter(invocationData.Arguments, JsonParameter.ValueType.Array),
@@ -49,7 +48,7 @@ namespace Hangfire.PostgreSql.Tests
             { "latency", "6730" },
           });
 
-        Commit(connection, x => x.SetJobState(jobId.ToString(CultureInfo.InvariantCulture), state.Object));
+        Commit(connection, x => x.SetJobState(jobId.ToString(), state.Object));
 
         IMonitoringApi monitoringApi = _fixture.Storage.GetMonitoringApi();
         JobList<SucceededJobDto> jobs = monitoringApi.SucceededJobs(0, 10);

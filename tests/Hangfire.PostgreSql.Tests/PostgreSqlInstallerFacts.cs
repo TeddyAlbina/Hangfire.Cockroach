@@ -2,11 +2,11 @@
 using System.Globalization;
 using System.Linq;
 using Dapper;
-using Hangfire.PostgreSql.Tests.Utils;
+using Hangfire.Cockroach.Tests.Utils;
 using Npgsql;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlInstallerFacts
   {

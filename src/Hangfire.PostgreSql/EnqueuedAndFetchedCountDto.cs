@@ -19,7 +19,7 @@
 //   
 //    Special thanks goes to him.
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class EnqueuedAndFetchedCountDto
   {

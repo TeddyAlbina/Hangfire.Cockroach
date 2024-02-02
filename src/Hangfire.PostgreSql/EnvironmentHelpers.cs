@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   internal class EnvironmentHelpers
   {

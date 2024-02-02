@@ -1,9 +1,9 @@
 ﻿using System;
-using Hangfire.PostgreSql.Factories;
+using Hangfire.Cockroach.Factories;
 using Moq;
 using Npgsql;
 
-namespace Hangfire.PostgreSql.Tests.Utils
+namespace Hangfire.Cockroach.Tests.Utils
 {
   public class PostgreSqlStorageFixture : IDisposable
   {

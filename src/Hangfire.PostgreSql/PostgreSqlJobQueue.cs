@@ -26,12 +26,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
-using Hangfire.PostgreSql.Properties;
-using Hangfire.PostgreSql.Utils;
+using Hangfire.Cockroach.Properties;
+using Hangfire.Cockroach.Utils;
 using Hangfire.Storage;
 using Npgsql;
 
-namespace Hangfire.PostgreSql
+namespace Hangfire.Cockroach
 {
   public class PostgreSqlJobQueue : IPersistentJobQueue
   {
@@ -53,42 +53,46 @@ namespace Hangfire.PostgreSql
     [NotNull]
     public IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken)
     {
-      Task listenTask = null;
-      CancellationTokenSource cancelListenSource = null;
+      return _storage.Options.UseNativeDatabaseTransactions
+        ? Dequeue_Transaction(queues, cancellationToken)
+        : Dequeue_UpdateCount(queues, cancellationToken);
 
-      if (_storage.Options.EnableLongPolling)
-      {
-        cancelListenSource = new CancellationTokenSource();
-        listenTask = ListenForNotificationsAsync(cancelListenSource.Token);
-      }
+      //Task listenTask = null;
+      //CancellationTokenSource cancelListenSource = null;
 
-      try
-      {
-        return _storage.Options.UseNativeDatabaseTransactions
-          ? Dequeue_Transaction(queues, cancellationToken)
-          : Dequeue_UpdateCount(queues, cancellationToken);
-      }
-      finally
-      {
-        try
-        {
-          cancelListenSource?.Cancel();
-          listenTask?.Wait();
-        }
-        catch (AggregateException ex)
-        {
-          if (ex.InnerException is not TaskCanceledException)
-          {
-            throw;
-          }
+      //if (_storage.Options.EnableLongPolling)
+      //{
+      //  cancelListenSource = new CancellationTokenSource();
+      //  listenTask = ListenForNotificationsAsync(cancelListenSource.Token);
+      //}
 
-          // Otherwise do nothing, cancel exception is expected.
-        }
-        finally
-        {
-          cancelListenSource?.Dispose();
-        }
-      }
+      //try
+      //{
+      //  return _storage.Options.UseNativeDatabaseTransactions
+      //    ? Dequeue_Transaction(queues, cancellationToken)
+      //    : Dequeue_UpdateCount(queues, cancellationToken);
+      //}
+      //finally
+      //{
+      //  try
+      //  {
+      //    cancelListenSource?.Cancel();
+      //    listenTask?.Wait();
+      //  }
+      //  catch (AggregateException ex)
+      //  {
+      //    if (ex.InnerException is not TaskCanceledException)
+      //    {
+      //      throw;
+      //    }
+
+      //    // Otherwise do nothing, cancel exception is expected.
+      //  }
+      //  finally
+      //  {
+      //    cancelListenSource?.Dispose();
+      //  }
+      //}
     }
 
     public void Enqueue(IDbConnection connection, string queue, string jobId)
@@ -99,12 +103,14 @@ namespace Hangfire.PostgreSql
       ";
 
       connection.Execute(enqueueJobSql,
-        new { JobId = Convert.ToInt64(jobId, CultureInfo.InvariantCulture), Queue = queue });
+        new { JobId = Guid.Parse(jobId), Queue = queue });
 
-      if (_storage.Options.EnableLongPolling)
-      {
-        connection.Execute($"NOTIFY {JobNotificationChannel}");
-      }
+      //if (_storage.Options.EnableLongPolling)
+      //{
+
+
+      //  //connection.Execute($"NOTIFY {JobNotificationChannel}");
+      //}
     }
 
     /// <summary>
@@ -140,18 +146,19 @@ namespace Hangfire.PostgreSql
           FROM ""{_storage.Options.SchemaName}"".""jobqueue"" 
           WHERE ""queue"" = ANY (@Queues)
           AND (""fetchedat"" IS NULL OR ""fetchedat"" < NOW() + INTERVAL '{timeoutSeconds.ToString(CultureInfo.InvariantCulture)} SECONDS')
-          ORDER BY ""fetchedat"" NULLS FIRST, ""queue"", ""jobid""
+          ORDER BY ""fetchedat"" NULLS FIRST, ""queue"", ""serialid""
           FOR UPDATE SKIP LOCKED
           LIMIT 1
         )
         RETURNING ""id"" AS ""Id"", ""jobid"" AS ""JobId"", ""queue"" AS ""Queue"", ""fetchedat"" AS ""FetchedAt"";
       ";
 
-      WaitHandle[] nextFetchIterationWaitHandles = new[] {
+      WaitHandle[] nextFetchIterationWaitHandles = [
         cancellationToken.WaitHandle,
         SignalDequeue,
         JobQueueNotification,
-      }.Concat(_queueEventRegistry.GetWaitHandles(queues)).ToArray();
+        .. _queueEventRegistry.GetWaitHandles(queues),
+      ];
 
       do
       {
@@ -194,7 +201,7 @@ namespace Hangfire.PostgreSql
 
       return new PostgreSqlFetchedJob(_storage,
         fetchedJob.Id,
-        fetchedJob.JobId.ToString(CultureInfo.InvariantCulture),
+        fetchedJob.JobId.ToString(),
         fetchedJob.Queue);
     }
 
@@ -220,7 +227,7 @@ namespace Hangfire.PostgreSql
         FROM ""{_storage.Options.SchemaName}"".""jobqueue"" 
         WHERE ""queue"" = ANY (@Queues)
         AND (""fetchedat"" IS NULL OR ""fetchedat"" < NOW() + INTERVAL '{timeoutSeconds.ToString(CultureInfo.InvariantCulture)} SECONDS')
-        ORDER BY ""fetchedat"" NULLS FIRST, ""queue"", ""jobid""
+        ORDER BY ""fetchedat"" NULLS FIRST, ""queue"", ""serialid""
         LIMIT 1;
         ";
 
@@ -243,11 +250,11 @@ namespace Hangfire.PostgreSql
 
         if (jobToFetch == null)
         {
-          WaitHandle.WaitAny(new[] {
+          WaitHandle.WaitAny([
               cancellationToken.WaitHandle,
-              SignalDequeue,
-              JobQueueNotification,
-            },
+            SignalDequeue,
+            JobQueueNotification,
+          ],
             _storage.Options.QueuePollInterval);
 
           cancellationToken.ThrowIfCancellationRequested();
@@ -263,7 +270,7 @@ namespace Hangfire.PostgreSql
 
       return new PostgreSqlFetchedJob(_storage,
         markJobAsFetched.Id,
-        markJobAsFetched.JobId.ToString(CultureInfo.InvariantCulture),
+        markJobAsFetched.JobId.ToString(),
         markJobAsFetched.Queue);
     }
 
@@ -319,8 +326,8 @@ namespace Hangfire.PostgreSql
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class FetchedJob
     {
-      public long Id { get; set; }
-      public long JobId { get; set; }
+      public Guid Id { get; set; }
+      public Guid JobId { get; set; }
       public string Queue { get; set; }
       public DateTime? FetchedAt { get; set; }
       public int UpdateCount { get; set; }

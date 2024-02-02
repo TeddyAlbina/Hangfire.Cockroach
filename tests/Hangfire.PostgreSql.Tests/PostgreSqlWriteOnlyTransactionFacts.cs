@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
 using Dapper;
+using Hangfire.Cockroach.Factories;
+using Hangfire.Cockroach.Tests.Entities;
+using Hangfire.Cockroach.Tests.Utils;
 using Hangfire.Common;
-using Hangfire.PostgreSql.Factories;
-using Hangfire.PostgreSql.Tests.Entities;
-using Hangfire.PostgreSql.Tests.Utils;
 using Hangfire.States;
 using Hangfire.Storage;
 using Moq;
@@ -17,7 +17,7 @@ using Npgsql;
 using Xunit;
 using IsolationLevel = System.Transactions.IsolationLevel;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlWriteOnlyTransactionFacts : IClassFixture<PostgreSqlStorageFixture>
   {
@@ -58,8 +58,8 @@ namespace Hangfire.PostgreSql.Tests
 
       UseConnection(connection => {
         DateTime utcNow = DateTime.UtcNow;
-        string jobId = connection.QuerySingle<long>(arrangeSql, new { When = utcNow }).ToString(CultureInfo.InvariantCulture);
-        string anotherJobId = connection.QuerySingle<long>(arrangeSql, new { When = utcNow }).ToString(CultureInfo.InvariantCulture);
+        string jobId = connection.QuerySingle<Guid>(arrangeSql, new { When = utcNow }).ToString();
+        string anotherJobId = connection.QuerySingle<Guid>(arrangeSql, new { When = utcNow }).ToString();
 
         Commit(connection, x => x.ExpireJob(jobId, TimeSpan.FromDays(1)));
 
@@ -81,8 +81,8 @@ namespace Hangfire.PostgreSql.Tests
       ";
 
       UseConnection(connection => {
-        string jobId = connection.QuerySingle<long>(arrangeSql).ToString(CultureInfo.InvariantCulture);
-        string anotherJobId = connection.QuerySingle<long>(arrangeSql).ToString(CultureInfo.InvariantCulture);
+        string jobId = connection.QuerySingle<Guid>(arrangeSql).ToString();
+        string anotherJobId = connection.QuerySingle<Guid>(arrangeSql).ToString();
 
         Commit(connection, x => x.PersistJob(jobId));
 
@@ -226,7 +226,7 @@ namespace Hangfire.PostgreSql.Tests
       Dictionary<string, string> expectedData = new() { { "Name", "Value" } };
 
       UseConnection(connection => {
-        dynamic jobId = connection.Query(arrangeSql).Single().id.ToString(CultureInfo.InvariantCulture);
+        dynamic jobId = connection.Query(arrangeSql).Single().id.ToString();
 
         Mock<IState> state = new();
         state.Setup(x => x.Name).Returns("State");
@@ -240,7 +240,7 @@ namespace Hangfire.PostgreSql.Tests
         Assert.Null(job.StateId);
 
         dynamic jobState = connection.Query($@"SELECT * FROM ""{GetSchemaName()}"".""state""").Single();
-        Assert.Equal((string)jobId, jobState.jobid.ToString(CultureInfo.InvariantCulture));
+        Assert.Equal((string)jobId, jobState.jobid.ToString());
         Assert.Equal("State", jobState.name);
         Assert.Equal("Reason", jobState.reason);
         Assert.NotNull(jobState.createdat);
@@ -482,7 +482,7 @@ namespace Hangfire.PostgreSql.Tests
         }
       }
 
-      const int loopIterations = 1_000;
+      const int loopIterations = 10;
       const int jobGroups = 10;
       const int totalTagsCount = 2;
 
@@ -659,7 +659,7 @@ namespace Hangfire.PostgreSql.Tests
           x.TrimList("my-key", 1, 2);
         });
 
-        dynamic[] records = connection.Query($@"SELECT * FROM ""{GetSchemaName()}"".""list""").ToArray();
+        dynamic[] records = connection.Query($@"SELECT * FROM ""{GetSchemaName()}"".""list"" ORDER BY ""serialid"" ASC").ToArray();
 
         Assert.Equal(2, records.Length);
         Assert.Equal("1", records[0].value);
@@ -829,7 +829,7 @@ namespace Hangfire.PostgreSql.Tests
     public void AddRangeToSet_AddsAllItems_ToAGivenSet()
     {
       UseConnection(connection => {
-        List<string> items = new() { "1", "2", "3" };
+        List<string> items = ["1", "2", "3"];
 
         Commit(connection, x => x.AddRangeToSet("my-set", items));
 

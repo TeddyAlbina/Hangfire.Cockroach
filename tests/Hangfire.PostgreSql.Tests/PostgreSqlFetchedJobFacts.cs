@@ -2,15 +2,18 @@
 using System.Globalization;
 using System.Linq;
 using Dapper;
-using Hangfire.PostgreSql.Tests.Utils;
+using Hangfire.Cockroach.Tests.Utils;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlFetchedJobFacts
   {
     private const string JobId = "id";
     private const string Queue = "queue";
+    private readonly Guid Id1 = new Guid("70F8F27E-F0EC-4EDA-A242-8835E14D7D31");
+    private readonly Guid Id2 = new Guid("66D8F927-D5DD-4C42-A6B0-E683CA585069");
+    private readonly Guid Id3 = new Guid("57354D89-8A41-42ED-9F78-DC3FD9F6DD32");
 
     private readonly PostgreSqlStorage _storage;
 
@@ -22,7 +25,7 @@ namespace Hangfire.PostgreSql.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenStorageIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(null, 1, JobId, Queue));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(null, Id1, JobId, Queue));
 
       Assert.Equal("storage", exception.ParamName);
     }
@@ -30,7 +33,7 @@ namespace Hangfire.PostgreSql.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenJobIdIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, 1, null, Queue));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, Id1, null, Queue));
 
       Assert.Equal("jobId", exception.ParamName);
     }
@@ -38,7 +41,7 @@ namespace Hangfire.PostgreSql.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenQueueIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, 1, JobId, null));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, Id1, JobId, null));
 
       Assert.Equal("queue", exception.ParamName);
     }
@@ -46,9 +49,9 @@ namespace Hangfire.PostgreSql.Tests
     [Fact]
     public void Ctor_CorrectlySets_AllInstanceProperties()
     {
-      PostgreSqlFetchedJob fetchedJob = new(_storage, 1, JobId, Queue);
+      PostgreSqlFetchedJob fetchedJob = new(_storage, Id1, JobId, Queue);
 
-      Assert.Equal(1, fetchedJob.Id);
+      Assert.Equal(Id1, fetchedJob.Id);
       Assert.Equal(JobId, fetchedJob.JobId);
       Assert.Equal(Queue, fetchedJob.Queue);
     }
@@ -58,7 +61,7 @@ namespace Hangfire.PostgreSql.Tests
     public void RemoveFromQueue_ReallyDeletesTheJobFromTheQueue()
     {
       // Arrange
-      long id = CreateJobQueueRecord(_storage, "1", "default");
+      var id = CreateJobQueueRecord(_storage, Id1.ToString(), "default");
       PostgreSqlFetchedJob processingJob = new(_storage, id, "1", "default");
 
       // Act
@@ -75,11 +78,11 @@ namespace Hangfire.PostgreSql.Tests
     public void RemoveFromQueue_DoesNotDelete_UnrelatedJobs()
     {
       // Arrange
-      CreateJobQueueRecord(_storage, "1", "default");
-      CreateJobQueueRecord(_storage, "1", "critical");
-      CreateJobQueueRecord(_storage, "2", "default");
+      CreateJobQueueRecord(_storage, Id1.ToString(), "default");
+      CreateJobQueueRecord(_storage, Id2.ToString(), "critical");
+      CreateJobQueueRecord(_storage, Id3.ToString(), "default");
 
-      PostgreSqlFetchedJob fetchedJob = new PostgreSqlFetchedJob(_storage, 999, "1", "default");
+      PostgreSqlFetchedJob fetchedJob = new PostgreSqlFetchedJob(_storage, Guid.NewGuid(), Id1.ToString(), "default");
 
       // Act
       fetchedJob.RemoveFromQueue();
@@ -95,8 +98,8 @@ namespace Hangfire.PostgreSql.Tests
     public void Requeue_SetsFetchedAtValueToNull()
     {
       // Arrange
-      long id = CreateJobQueueRecord(_storage, "1", "default");
-      PostgreSqlFetchedJob processingJob = new(_storage, id, "1", "default");
+      var id = CreateJobQueueRecord(_storage, Id1.ToString(), "default");
+      PostgreSqlFetchedJob processingJob = new(_storage, id, Id1.ToString(), "default");
 
       // Act
       processingJob.Requeue();
@@ -112,8 +115,8 @@ namespace Hangfire.PostgreSql.Tests
     public void Dispose_SetsFetchedAtValueToNull_IfThereWereNoCallsToComplete()
     {
       // Arrange
-      long id = CreateJobQueueRecord(_storage, "1", "default");
-      PostgreSqlFetchedJob processingJob = new(_storage, id, "1", "default");
+      var id = CreateJobQueueRecord(_storage, Id3.ToString(), "default");
+      PostgreSqlFetchedJob processingJob = new(_storage, id, Id3.ToString(), "default");
 
       // Act
       processingJob.Dispose();
@@ -124,7 +127,7 @@ namespace Hangfire.PostgreSql.Tests
       Assert.Null(record.fetchedat);
     }
 
-    private static long CreateJobQueueRecord(PostgreSqlStorage storage, string jobId, string queue)
+    private static Guid CreateJobQueueRecord(PostgreSqlStorage storage, string jobId, string queue)
     {
       string arrangeSql = $@"
         INSERT INTO ""{GetSchemaName()}"".""jobqueue"" (""jobid"", ""queue"", ""fetchedat"")
@@ -132,8 +135,8 @@ namespace Hangfire.PostgreSql.Tests
       ";
 
       return
-        storage.UseConnection(null, connection => 
-          connection.QuerySingle<long>(arrangeSql, new { Id = Convert.ToInt64(jobId, CultureInfo.InvariantCulture), Queue = queue }));
+        storage.UseConnection(null, connection =>
+          connection.QuerySingle<Guid>(arrangeSql, new { Id = Guid.Parse(jobId), Queue = queue }));
     }
 
     private static string GetSchemaName()

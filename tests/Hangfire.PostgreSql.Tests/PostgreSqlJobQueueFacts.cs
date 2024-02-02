@@ -5,16 +5,20 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
-using Hangfire.PostgreSql.Tests.Utils;
-using Hangfire.PostgreSql.Utils;
+using Hangfire.Cockroach.Tests.Utils;
+using Hangfire.Cockroach.Utils;
 using Hangfire.Storage;
 using Xunit;
 
-namespace Hangfire.PostgreSql.Tests
+namespace Hangfire.Cockroach.Tests
 {
   public class PostgreSqlJobQueueFacts : IClassFixture<PostgreSqlStorageFixture>
   {
-    private static readonly string[] _defaultQueues = { "default" };
+    private static readonly string[] _defaultQueues = ["default"];
+
+    private readonly Guid Id1 = new Guid("70F8F27E-F0EC-4EDA-A242-8835E14D7D31");
+    private readonly Guid Id2 = new Guid("66D8F927-D5DD-4C42-A6B0-E683CA585069");
+    private readonly Guid Id3 = new Guid("57354D89-8A41-42ED-9F78-DC3FD9F6DD32");
 
     private readonly PostgreSqlStorageFixture _fixture;
 
@@ -52,13 +56,17 @@ namespace Hangfire.PostgreSql.Tests
         PostgreSqlJobQueue queue = CreateJobQueue(storage, false);
         CancellationToken token = CreateTimingOutCancellationToken();
 
-        queue.Enqueue(connection, "1", "1");
-        queue.Enqueue(connection, "2", "2");
-        queue.Enqueue(connection, "3", "3");
+        queue.Enqueue(connection, "1", Id1.ToString());
+        queue.Enqueue(connection, "2", Id2.ToString());
+        queue.Enqueue(connection, "3", Id3.ToString());
 
-        Assert.Equal("1", queue.Dequeue(new[] { "1", "2", "3" }, token).JobId);
-        Assert.Equal("2", queue.Dequeue(new[] { "2", "3", "1" }, token).JobId);
-        Assert.Equal("3", queue.Dequeue(new[] { "3", "1", "2" }, token).JobId);
+        Assert.Equal(Id1.ToString(), queue.Dequeue(["1", "2", "3"], token).JobId);
+        Assert.Equal(Id2.ToString(), queue.Dequeue(["2", "3", "1"], token).JobId);
+        Assert.Equal(Id3.ToString(), queue.Dequeue(["3", "1", "2"], token).JobId);
+
+        //Assert.Equal("1", queue.Dequeue(["1", "2", "3"], token).JobId);
+        //Assert.Equal("2", queue.Dequeue(["2", "3", "1"], token).JobId);
+        //Assert.Equal("3", queue.Dequeue(["3", "1", "2"], token).JobId);
       });
     }
 
@@ -81,7 +89,7 @@ namespace Hangfire.PostgreSql.Tests
       UseConnection((_, storage) => {
         PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => queue.Dequeue(Array.Empty<string>(), CreateTimingOutCancellationToken()));
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => queue.Dequeue([], CreateTimingOutCancellationToken()));
 
         Assert.Equal("queues", exception.ParamName);
       });
@@ -160,8 +168,8 @@ namespace Hangfire.PostgreSql.Tests
 
       // Arrange
       UseConnection((connection, storage) => {
-        long id = connection.QuerySingle<long>(arrangeSql,
-          new { JobId = 1, Queue = "default" });
+        var id = connection.QuerySingle<Guid>(arrangeSql,
+          new { JobId = Id1, Queue = "default" });
         PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         // Act
@@ -170,7 +178,7 @@ namespace Hangfire.PostgreSql.Tests
 
         // Assert
         Assert.Equal(id, payload.Id);
-        Assert.Equal("1", payload.JobId);
+        Assert.Equal(Id1.ToString(), payload.JobId);
         Assert.Equal("default", payload.Queue);
       });
     }
@@ -215,7 +223,7 @@ namespace Hangfire.PostgreSql.Tests
         Assert.NotNull(payload);
 
         DateTime? fetchedAt = connection.QuerySingle<DateTime?>($@"SELECT ""fetchedat"" FROM ""{GetSchemaName()}"".""jobqueue"" WHERE ""jobid"" = @Id",
-          new { Id = Convert.ToInt64(payload.JobId, CultureInfo.InvariantCulture) });
+          new { Id = Guid.Parse(payload.JobId) });
 
         Assert.NotNull(fetchedAt);
         Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
@@ -309,7 +317,7 @@ namespace Hangfire.PostgreSql.Tests
 
         // Assert
         DateTime? otherJobFetchedAt = connection.QuerySingle<DateTime?>($@"SELECT ""fetchedat"" FROM ""{GetSchemaName()}"".""jobqueue"" WHERE ""jobid"" <> @Id",
-          new { Id = Convert.ToInt64(payload.JobId, CultureInfo.InvariantCulture) });
+          new { Id = Guid.Parse(payload.JobId) });
 
         Assert.Null(otherJobFetchedAt);
       });
@@ -378,7 +386,7 @@ namespace Hangfire.PostgreSql.Tests
         SELECT i.""id"", @Queue FROM i;
       ";
 
-      string[] queueNames = { "default", "critical" };
+      string[] queueNames = ["default", "critical"];
 
       UseConnection((connection, storage) => {
         connection.Execute(arrangeSql,
@@ -428,7 +436,7 @@ namespace Hangfire.PostgreSql.Tests
 
         Assert.True(name.Length > 21);
 
-        queue.Enqueue(connection, name, "1");
+        queue.Enqueue(connection, name, Id1.ToString());
 
         string retrievedName = connection.QuerySingle<string>($@"SELECT ""queue"" FROM ""{GetSchemaName()}"".""jobqueue""");
         Assert.Equal(name, retrievedName);
@@ -446,14 +454,14 @@ namespace Hangfire.PostgreSql.Tests
 
         Task.Run(() => {
           //dequeue the job asynchronously
-          job = queue.Dequeue(new[] { "default" }, CreateTimingOutCancellationToken());
+          job = queue.Dequeue(["default"], CreateTimingOutCancellationToken());
         });
         //all sleeps are possibly way to high but this ensures that any race condition is unlikely
         //to ensure that the task would run 
         Thread.Sleep(1000);
         Assert.Null(job);
         //enqueue a job that does not trigger the existing queue to reevaluate its state
-        queue.Enqueue(connection, "default", "1");
+        queue.Enqueue(connection, "default", Id1.ToString());
         Thread.Sleep(1000);
         //the job should still be unset
         Assert.Null(job);
@@ -465,59 +473,59 @@ namespace Hangfire.PostgreSql.Tests
       });
     }
 
-    [Fact]
-    [CleanDatabase]
-    public void Queues_Can_Dequeue_On_Notification()
-    {
-      UseConnection((connection, storage) => {
-        TimeSpan timeout = TimeSpan.FromSeconds(30);
+    //[Fact]
+    //[CleanDatabase]
+    //public void Queues_Can_Dequeue_On_Notification()
+    //{
+    //  UseConnection((connection, storage) => {
+    //    TimeSpan timeout = TimeSpan.FromSeconds(30);
 
-        // Only for Postgres 11+ should we have a polling time greater than the timeout.
-        if (connection.SupportsNotifications())
-        {
-          storage.Options.QueuePollInterval = TimeSpan.FromMinutes(2);
-        }
+    //    // Only for Postgres 11+ should we have a polling time greater than the timeout.
+    //    if (connection.SupportsNotifications())
+    //    {
+    //      storage.Options.QueuePollInterval = TimeSpan.FromMinutes(2);
+    //    }
 
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, false, true);
-        IFetchedJob job = null;
-        //as UseConnection does not support async-await we have to work with Thread.Sleep
+    //    PostgreSqlJobQueue queue = CreateJobQueue(storage, false, true);
+    //    IFetchedJob job = null;
+    //    //as UseConnection does not support async-await we have to work with Thread.Sleep
 
-        Task task = Task.Run(() => {
-          //dequeue the job asynchronously
-          CancellationTokenSource cancellationTokenSource = new(timeout);
-          try
-          {
-            job = queue.Dequeue(new[] { "default" }, cancellationTokenSource.Token);
-          }
-          catch (OperationCanceledException)
-          {
-            // Do nothing, task was intentionally cancelled.
-          }
-          finally
-          {
-            cancellationTokenSource.Dispose();
-          }
-        });
+    //    Task task = Task.Run(() => {
+    //      //dequeue the job asynchronously
+    //      CancellationTokenSource cancellationTokenSource = new(timeout);
+    //      try
+    //      {
+    //        job = queue.Dequeue(["default"], cancellationTokenSource.Token);
+    //      }
+    //      catch (OperationCanceledException)
+    //      {
+    //        // Do nothing, task was intentionally cancelled.
+    //      }
+    //      finally
+    //      {
+    //        cancellationTokenSource.Dispose();
+    //      }
+    //    });
 
-        Thread.Sleep(2000); // Give thread time to startup.
+    //    Thread.Sleep(2000); // Give thread time to startup.
 
-        queue.Enqueue(connection, "default", "1");
+    //    queue.Enqueue(connection, "default", Id1.ToString());
 
-        task.Wait(timeout);
+    //    task.Wait(timeout);
 
-        Assert.NotNull(job);
-      });
-    }
+    //    Assert.NotNull(job);
+    //  });
+    //}
 
     private void Enqueue_AddsAJobToTheQueue(bool useNativeDatabaseTransactions)
     {
       UseConnection((connection, storage) => {
         PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
-        queue.Enqueue(connection, "default", "1");
+        queue.Enqueue(connection, "default", Id1.ToString());
 
         dynamic record = connection.Query($@"SELECT * FROM ""{GetSchemaName()}"".""jobqueue""").Single();
-        Assert.Equal("1", record.jobid.ToString());
+        Assert.Equal(Id1.ToString(), record.jobid.ToString());
         Assert.Equal("default", record.queue);
         Assert.Null(record.FetchedAt);
       });

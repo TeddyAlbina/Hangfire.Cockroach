@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Transactions;
 
-namespace Hangfire.PostgreSql.Utils
+namespace Hangfire.Cockroach.Utils
 {
   public static class TransactionHelpers
   {

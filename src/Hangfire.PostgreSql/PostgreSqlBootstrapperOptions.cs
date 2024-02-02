@@ -1,9 +1,9 @@
 ﻿using System;
 using Hangfire.Annotations;
-using Hangfire.PostgreSql.Factories;
+using Hangfire.Cockroach.Factories;
 using Npgsql;
 
-namespace Hangfire.PostgreSql;
+namespace Hangfire.Cockroach;
 
 /// <summary>
 /// Bootstrapper options.
