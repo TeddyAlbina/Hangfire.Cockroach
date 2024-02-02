@@ -14,9 +14,9 @@ public sealed class ExistingNpgsqlConnectionFactory : NpgsqlInstanceConnectionFa
   /// Instantiates the factory using specified <paramref name="connection"/>.
   /// </summary>
   /// <param name="connection"><see cref="NpgsqlConnection"/> to use.</param>
-  /// <param name="options"><see cref="PostgreSqlStorageOptions"/> used for connection string verification.</param>
+  /// <param name="options"><see cref="CockroachStorageOptions"/> used for connection string verification.</param>
   /// <exception cref="ArgumentNullException"></exception>
-  public ExistingNpgsqlConnectionFactory(NpgsqlConnection connection, PostgreSqlStorageOptions options) : base(options)
+  public ExistingNpgsqlConnectionFactory(NpgsqlConnection connection, CockroachStorageOptions options) : base(options)
   {
     _connection = connection ?? throw new ArgumentNullException(nameof(connection));
     // To ensure valid connection string - throws internally

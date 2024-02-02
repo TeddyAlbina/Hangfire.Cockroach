@@ -8,11 +8,11 @@ namespace Hangfire.Cockroach;
 /// <summary>
 /// Bootstrapper options.
 /// </summary>
-public class PostgreSqlBootstrapperOptions
+public class CockroachBootstrapperOptions
 {
-  private readonly PostgreSqlStorageOptions _options;
+  private readonly CockroachStorageOptions _options;
 
-  internal PostgreSqlBootstrapperOptions(PostgreSqlStorageOptions options)
+  internal CockroachBootstrapperOptions(CockroachStorageOptions options)
   {
     _options = options ?? throw new ArgumentNullException(nameof(options));
   }
@@ -25,7 +25,7 @@ public class PostgreSqlBootstrapperOptions
   /// <param name="connectionFactory">Instance of <see cref="IConnectionFactory"/>.</param>
   /// <returns>This instance.</returns>
   /// <exception cref="ArgumentNullException">Throws if <paramref name="connectionFactory"/> is null.</exception>
-  public PostgreSqlBootstrapperOptions UseConnectionFactory(IConnectionFactory connectionFactory)
+  public CockroachBootstrapperOptions UseConnectionFactory(IConnectionFactory connectionFactory)
   {
     ConnectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
     return this;
@@ -37,7 +37,7 @@ public class PostgreSqlBootstrapperOptions
   /// <param name="connectionString">Connection string.</param>
   /// <param name="connectionSetup">Optional additional connection setup action to be performed on the created <see cref="NpgsqlConnection"/>.</param>
   /// <returns>This instance.</returns>
-  public PostgreSqlBootstrapperOptions UseNpgsqlConnection(string connectionString, [CanBeNull] Action<NpgsqlConnection> connectionSetup = null)
+  public CockroachBootstrapperOptions UseNpgsqlConnection(string connectionString, [CanBeNull] Action<NpgsqlConnection> connectionSetup = null)
   {
     return UseConnectionFactory(new NpgsqlConnectionFactory(connectionString, _options, connectionSetup));
   }
@@ -47,7 +47,7 @@ public class PostgreSqlBootstrapperOptions
   /// </summary>
   /// <param name="connection"><see cref="NpgsqlConnection"/> to use.</param>
   /// <returns>This instance.</returns>
-  public PostgreSqlBootstrapperOptions UseExistingNpgsqlConnection(NpgsqlConnection connection)
+  public CockroachBootstrapperOptions UseExistingNpgsqlConnection(NpgsqlConnection connection)
   {
     return UseConnectionFactory(new ExistingNpgsqlConnectionFactory(connection, _options));
   }

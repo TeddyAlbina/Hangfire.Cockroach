@@ -30,9 +30,9 @@ using Npgsql;
 
 namespace Hangfire.Cockroach
 {
-  public static class PostgreSqlObjectsInstaller
+  public static class CockroachObjectsInstaller
   {
-    private static readonly ILog _logger = LogProvider.GetLogger(typeof(PostgreSqlStorage));
+    private static readonly ILog _logger = LogProvider.GetLogger(typeof(CockroachStorage));
 
     public static void Install(NpgsqlConnection connection, string schemaName = "hangfire")
     {
@@ -53,7 +53,7 @@ namespace Hangfire.Cockroach
           string script;
           try
           {
-            script = GetStringResource(typeof(PostgreSqlObjectsInstaller).GetTypeInfo().Assembly,
+            script = GetStringResource(typeof(CockroachObjectsInstaller).GetTypeInfo().Assembly,
               $"Hangfire.Cockroach.Scripts.Install.v{version.ToString(CultureInfo.InvariantCulture)}.sql");
           }
           catch (MissingManifestResourceException)

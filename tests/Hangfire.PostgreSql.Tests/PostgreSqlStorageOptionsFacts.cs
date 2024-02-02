@@ -8,7 +8,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_SetsTheDefaultOptions()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
 
       Assert.True(options.QueuePollInterval > TimeSpan.Zero);
       Assert.True(options.InvisibilityTimeout > TimeSpan.Zero);
@@ -19,14 +19,14 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsTooLow()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       Assert.Throws<ArgumentException>(() => options.QueuePollInterval = TimeSpan.FromMilliseconds(10));
     }
 
     [Fact]
     public void Set_QueuePollInterval_SetsTheValue_WhenGivenIntervalIsTooLow_ButIgnored()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         AllowUnsafeValues = true,
         QueuePollInterval = TimeSpan.FromMilliseconds(10),
       };
@@ -36,14 +36,14 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Set_QueuePollInterval_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero_EvenIfIgnored()
     {
-      PostgreSqlStorageOptions options = new() { AllowUnsafeValues = true };
+      CockroachStorageOptions options = new() { AllowUnsafeValues = true };
       Assert.Throws<ArgumentException>(() => options.QueuePollInterval = TimeSpan.Zero);
     }
 
     [Fact]
     public void Set_QueuePollInterval_SetsTheValue()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       options.QueuePollInterval = TimeSpan.FromSeconds(1);
       Assert.Equal(TimeSpan.FromSeconds(1), options.QueuePollInterval);
     }
@@ -51,21 +51,21 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Set_InvisibilityTimeout_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       Assert.Throws<ArgumentException>(() => options.InvisibilityTimeout = TimeSpan.Zero);
     }
 
     [Fact]
     public void Set_InvisibilityTimeout_ShouldThrowAnException_WhenGivenIntervalIsNegative()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       Assert.Throws<ArgumentException>(() => options.InvisibilityTimeout = TimeSpan.FromSeconds(-1));
     }
 
     [Fact]
     public void Set_InvisibilityTimeout_SetsTheValue()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       options.InvisibilityTimeout = TimeSpan.FromSeconds(1);
       Assert.Equal(TimeSpan.FromSeconds(1), options.InvisibilityTimeout);
     }
@@ -73,21 +73,21 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Set_DistributedLockTimeout_ShouldThrowAnException_WhenGivenIntervalIsEqualToZero()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       Assert.Throws<ArgumentException>(() => options.DistributedLockTimeout = TimeSpan.Zero);
     }
 
     [Fact]
     public void Set_DistributedLockTimeout_ShouldThrowAnException_WhenGivenIntervalIsNegative()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       Assert.Throws<ArgumentException>(() => options.DistributedLockTimeout = TimeSpan.FromSeconds(-1));
     }
 
     [Fact]
     public void Set_DistributedLockTimeout_SetsTheValue()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
       options.DistributedLockTimeout = TimeSpan.FromSeconds(1);
       Assert.Equal(TimeSpan.FromSeconds(1), options.DistributedLockTimeout);
     }

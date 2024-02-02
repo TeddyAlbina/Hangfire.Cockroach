@@ -222,7 +222,7 @@ namespace Hangfire.Cockroach.Tests
 
     private void UseConnection(Action<NpgsqlConnection, ExpirationManager> action)
     {
-      PostgreSqlStorage storage = _fixture.SafeInit();
+      CockroachStorage storage = _fixture.SafeInit();
       ExpirationManager manager = new ExpirationManager(storage, TimeSpan.Zero);
       action(storage.CreateAndOpenConnection(), manager);
     }

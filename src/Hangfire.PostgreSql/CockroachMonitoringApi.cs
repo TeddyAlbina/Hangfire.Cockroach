@@ -22,24 +22,23 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Globalization;
 using System.Linq;
 using Dapper;
-using Hangfire.Common;
 using Hangfire.Cockroach.Entities;
+using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlMonitoringApi : IMonitoringApi
+  public class CockroachMonitoringApi : IMonitoringApi
   {
     private readonly PersistentJobQueueProviderCollection _queueProviders;
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
-    public PostgreSqlMonitoringApi(
-      PostgreSqlStorage storage,
+    public CockroachMonitoringApi(
+      CockroachStorage storage,
       PersistentJobQueueProviderCollection queueProviders)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));

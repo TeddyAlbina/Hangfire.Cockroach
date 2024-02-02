@@ -23,10 +23,10 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Acquire_ThrowsAnException_WhenResourceIsNullOrEmpty()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
 
       ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
-        () => PostgreSqlDistributedLock.Acquire(new Mock<IDbConnection>().Object, "", _timeout, options));
+        () => CockroachDistributedLock.Acquire(new Mock<IDbConnection>().Object, "", _timeout, options));
 
       Assert.Equal("resource", exception.ParamName);
     }
@@ -34,9 +34,9 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Acquire_ThrowsAnException_WhenConnectionIsNull()
     {
-      PostgreSqlStorageOptions options = new();
+      CockroachStorageOptions options = new();
 
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => PostgreSqlDistributedLock.Acquire(null, "hello", _timeout, options));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => CockroachDistributedLock.Acquire(null, "hello", _timeout, options));
 
       Assert.Equal("connection", exception.ParamName);
     }
@@ -47,7 +47,7 @@ namespace Hangfire.Cockroach.Tests
       Mock<IDbConnection> connection = new Mock<IDbConnection>();
       connection.SetupGet(c => c.State).Returns(ConnectionState.Open);
       ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
-        () => PostgreSqlDistributedLock.Acquire(new Mock<IDbConnection>().Object, "hi", _timeout, null));
+        () => CockroachDistributedLock.Acquire(new Mock<IDbConnection>().Object, "hi", _timeout, null));
 
       Assert.Equal("options", exception.ParamName);
     }
@@ -57,14 +57,14 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Acquire_AcquiresExclusiveApplicationLock_WithUseNativeDatabaseTransactions_OnSession()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = true,
       };
 
       UseConnection(connection => {
         // ReSharper disable once UnusedVariable
-        PostgreSqlDistributedLock.Acquire(connection, "hello", _timeout, options);
+        CockroachDistributedLock.Acquire(connection, "hello", _timeout, options);
 
         long lockCount = connection.QuerySingle<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""lock"" WHERE ""resource"" = @Resource",
           new { Resource = "hello" });
@@ -78,7 +78,7 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Acquire_AcquiresExclusiveApplicationLock_WithUseNativeDatabaseTransactions_OnSession_WhenDeadlockOccurs()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = true,
         DistributedLockTimeout = TimeSpan.FromSeconds(10),
@@ -91,7 +91,7 @@ namespace Hangfire.Cockroach.Tests
         connection.Execute($@"INSERT INTO ""{GetSchemaName()}"".""lock"" VALUES (@ResourceName, 0, @Now)", new { ResourceName = resourceName, Now = DateTime.UtcNow });
 
         // Act && Assert (not throwing means it worked)
-        PostgreSqlDistributedLock.Acquire(connection, resourceName, timeout, options);
+        CockroachDistributedLock.Acquire(connection, resourceName, timeout, options);
       });
     }
 
@@ -99,15 +99,15 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Acquire_AcquiresExclusiveApplicationLock_WithoutUseNativeDatabaseTransactions_OnSession()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = false,
       };
 
       UseConnection(connection => {
         // Acquire locks on two different resources to make sure they don't conflict.
-        PostgreSqlDistributedLock.Acquire(connection, "hello", _timeout, options);
-        PostgreSqlDistributedLock.Acquire(connection, "hello2", _timeout, options);
+        CockroachDistributedLock.Acquire(connection, "hello", _timeout, options);
+        CockroachDistributedLock.Acquire(connection, "hello2", _timeout, options);
 
         long lockCount = connection.QuerySingle<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""lock"" WHERE ""resource"" = @Resource",
           new { Resource = "hello" });
@@ -121,7 +121,7 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Acquire_ThrowsAnException_IfLockCanNotBeGranted_WithUseNativeDatabaseTransactions()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = true,
       };
@@ -130,17 +130,17 @@ namespace Hangfire.Cockroach.Tests
       ManualResetEventSlim lockAcquired = new(false);
 
       Thread thread = new(() => UseConnection(connection1 => {
-        PostgreSqlDistributedLock.Acquire(connection1, "exclusive", _timeout, options);
+        CockroachDistributedLock.Acquire(connection1, "exclusive", _timeout, options);
         lockAcquired.Set();
         releaseLock.Wait();
-        PostgreSqlDistributedLock.Release(connection1, "exclusive", options);
+        CockroachDistributedLock.Release(connection1, "exclusive", options);
       }));
       thread.Start();
 
       lockAcquired.Wait();
 
       UseConnection(connection2 =>
-        Assert.Throws<PostgreSqlDistributedLockException>(() => PostgreSqlDistributedLock.Acquire(connection2, "exclusive", _timeout, options)));
+        Assert.Throws<CockroachDistributedLockException>(() => CockroachDistributedLock.Acquire(connection2, "exclusive", _timeout, options)));
 
       releaseLock.Set();
       thread.Join();
@@ -150,7 +150,7 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Acquire_ThrowsAnException_IfLockCanNotBeGranted_WithoutUseNativeDatabaseTransactions()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = false,
       };
@@ -159,17 +159,17 @@ namespace Hangfire.Cockroach.Tests
       ManualResetEventSlim lockAcquired = new(false);
 
       Thread thread = new(() => UseConnection(connection1 => {
-        PostgreSqlDistributedLock.Acquire(connection1, "exclusive", _timeout, options);
+        CockroachDistributedLock.Acquire(connection1, "exclusive", _timeout, options);
         lockAcquired.Set();
         releaseLock.Wait();
-        PostgreSqlDistributedLock.Release(connection1, "exclusive", options);
+        CockroachDistributedLock.Release(connection1, "exclusive", options);
       }));
       thread.Start();
 
       lockAcquired.Wait();
 
       UseConnection(connection2 =>
-        Assert.Throws<PostgreSqlDistributedLockException>(() => PostgreSqlDistributedLock.Acquire(connection2, "exclusive", _timeout, options)));
+        Assert.Throws<CockroachDistributedLockException>(() => CockroachDistributedLock.Acquire(connection2, "exclusive", _timeout, options)));
 
       releaseLock.Set();
       thread.Join();
@@ -183,7 +183,7 @@ namespace Hangfire.Cockroach.Tests
     {
       const string resource = "hello";
 
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = useNativeDatabaseTransactions,
       };
@@ -192,7 +192,7 @@ namespace Hangfire.Cockroach.Tests
         DateTime acquired = DateTime.UtcNow - options.DistributedLockTimeout - TimeSpan.FromMinutes(1);
         connection.Execute($@"INSERT INTO ""{GetSchemaName()}"".""lock"" (""resource"", ""acquired"") VALUES (@Resource, @Acquired)", new { Resource = resource, Acquired = acquired });
 
-        PostgreSqlDistributedLock.Acquire(connection, resource, _timeout, options);
+        CockroachDistributedLock.Acquire(connection, resource, _timeout, options);
 
         long lockCount = connection.QuerySingle<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""lock"" WHERE ""resource"" = @Resource",
           new { Resource = resource });
@@ -205,14 +205,14 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Dispose_ReleasesExclusiveApplicationLock_WithUseNativeDatabaseTransactions()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = true,
       };
 
       UseConnection(connection => {
-        PostgreSqlDistributedLock.Acquire(connection, "hello", _timeout, options);
-        PostgreSqlDistributedLock.Release(connection, "hello", options);
+        CockroachDistributedLock.Acquire(connection, "hello", _timeout, options);
+        CockroachDistributedLock.Release(connection, "hello", options);
 
         long lockCount = connection.QuerySingle<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""lock"" WHERE ""resource"" = @Resource",
           new { Resource = "hello" });
@@ -225,14 +225,14 @@ namespace Hangfire.Cockroach.Tests
     [CleanDatabase]
     public void Dispose_ReleasesExclusiveApplicationLock_WithoutUseNativeDatabaseTransactions()
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         SchemaName = GetSchemaName(),
         UseNativeDatabaseTransactions = false,
       };
 
       UseConnection(connection => {
-        PostgreSqlDistributedLock.Acquire(connection, "hello", _timeout, options);
-        PostgreSqlDistributedLock.Release(connection, "hello", options);
+        CockroachDistributedLock.Acquire(connection, "hello", _timeout, options);
+        CockroachDistributedLock.Release(connection, "hello", options);
 
         long lockCount = connection.Query<long>($@"SELECT COUNT(*) FROM ""{GetSchemaName()}"".""lock"" WHERE ""resource"" = @Resource",
           new { Resource = "hello" }).Single();

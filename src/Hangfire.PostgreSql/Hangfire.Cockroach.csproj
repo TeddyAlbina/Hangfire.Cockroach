@@ -49,8 +49,4 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Notification\" />
-  </ItemGroup>
-
 </Project>

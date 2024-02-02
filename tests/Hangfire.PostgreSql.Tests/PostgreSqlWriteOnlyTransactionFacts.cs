@@ -31,7 +31,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_IfStorageIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlWriteOnlyTransaction(null, () => null));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachWriteOnlyTransaction(null, () => null));
 
       Assert.Equal("storage", exception.ParamName);
     }
@@ -39,9 +39,9 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_IfDedicatedConnectionFuncIsNull()
     {
-      PostgreSqlStorageOptions options = new() { EnableTransactionScopeEnlistment = true };
+      CockroachStorageOptions options = new() { EnableTransactionScopeEnlistment = true };
       ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
-        new PostgreSqlWriteOnlyTransaction(new PostgreSqlStorage(new ExistingNpgsqlConnectionFactory(ConnectionUtils.CreateConnection(), options), options), null));
+        new CockroachWriteOnlyTransaction(new CockroachStorage(new ExistingNpgsqlConnectionFactory(ConnectionUtils.CreateConnection(), options), options), null));
 
       Assert.Equal("dedicatedConnectionFunc", exception.ParamName);
     }
@@ -467,7 +467,7 @@ namespace Hangfire.Cockroach.Tests
         throw new SkipException("You need to have more than 1 CPU to run the test");
       }
 
-      void CommitTags(PostgreSqlWriteOnlyTransaction transaction, IEnumerable<string> tags, string jobId)
+      void CommitTags(CockroachWriteOnlyTransaction transaction, IEnumerable<string> tags, string jobId)
       {
         //Imitating concurrency issue scenario from Hangfire.Tags library.
         //Details: https://github.com/frankhommers/Hangfire.PostgreSql/issues/191
@@ -1100,8 +1100,8 @@ namespace Hangfire.Cockroach.Tests
           dynamic _ = connection.Query($@"SELECT * FROM ""{GetSchemaName()}"".""jobqueue""").FirstOrDefault();
         }
 
-        PostgreSqlStorageOptions options = new() { EnableTransactionScopeEnlistment = true };
-        PostgreSqlStorage storage = new(new NpgsqlConnectionFactory(connectionString, options), options);
+        CockroachStorageOptions options = new() { EnableTransactionScopeEnlistment = true };
+        CockroachStorage storage = new(new NpgsqlConnectionFactory(connectionString, options), options);
         using (IStorageConnection storageConnection = storage.GetConnection())
         {
           using (IWriteOnlyTransaction writeTransaction = storageConnection.CreateWriteTransaction())
@@ -1131,7 +1131,7 @@ namespace Hangfire.Cockroach.Tests
 
     private void UseConnection(Action<NpgsqlConnection> action)
     {
-      PostgreSqlStorage storage = _fixture.SafeInit();
+      CockroachStorage storage = _fixture.SafeInit();
       action(storage.CreateAndOpenConnection());
     }
 
@@ -1143,26 +1143,26 @@ namespace Hangfire.Cockroach.Tests
       }
     }
 
-    private void Commit(NpgsqlConnection connection, Action<PostgreSqlWriteOnlyTransaction> action)
+    private void Commit(NpgsqlConnection connection, Action<CockroachWriteOnlyTransaction> action)
     {
-      PostgreSqlStorage storage = _fixture.ForceInit(connection);
+      CockroachStorage storage = _fixture.ForceInit(connection);
       using (IWriteOnlyTransaction transaction = storage.GetConnection().CreateWriteTransaction())
       {
-        action(transaction as PostgreSqlWriteOnlyTransaction);
+        action(transaction as CockroachWriteOnlyTransaction);
         transaction.Commit();
       }
     }
 
-    private void CommitDisposable(NpgsqlConnection connection, Action<PostgreSqlWriteOnlyTransaction> action)
+    private void CommitDisposable(NpgsqlConnection connection, Action<CockroachWriteOnlyTransaction> action)
     {
-      PostgreSqlStorageOptions options = new() {
+      CockroachStorageOptions options = new() {
         EnableTransactionScopeEnlistment = true,
         SchemaName = GetSchemaName(),
       };
-      PostgreSqlStorage storage = new(new ExistingNpgsqlConnectionFactory(connection, options), options);
+      CockroachStorage storage = new(new ExistingNpgsqlConnectionFactory(connection, options), options);
       using (IWriteOnlyTransaction transaction = storage.GetConnection().CreateWriteTransaction())
       {
-        action(transaction as PostgreSqlWriteOnlyTransaction);
+        action(transaction as CockroachWriteOnlyTransaction);
         transaction.Commit();
       }
     }

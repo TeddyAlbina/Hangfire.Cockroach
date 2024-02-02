@@ -39,9 +39,9 @@ namespace Hangfire.Cockroach.Tests.Utils
       return string.Format(CultureInfo.InvariantCulture, GetConnectionStringTemplate(), GetDatabaseName());
     }
 
-    public static NpgsqlConnectionFactory GetDefaultConnectionFactory([CanBeNull] PostgreSqlStorageOptions options = null)
+    public static NpgsqlConnectionFactory GetDefaultConnectionFactory([CanBeNull] CockroachStorageOptions options = null)
     {
-      return new NpgsqlConnectionFactory(GetConnectionString(), options ?? new PostgreSqlStorageOptions());
+      return new NpgsqlConnectionFactory(GetConnectionString(), options ?? new CockroachStorageOptions());
     }
 
     private static string GetConnectionStringTemplate()

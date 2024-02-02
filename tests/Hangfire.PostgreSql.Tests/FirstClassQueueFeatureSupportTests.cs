@@ -11,7 +11,7 @@ public class FirstClassQueueFeatureSupportTests
 {
   public FirstClassQueueFeatureSupportTests()
   {
-    JobStorage.Current = new PostgreSqlStorage(ConnectionUtils.GetDefaultConnectionFactory());
+    JobStorage.Current = new CockroachStorage(ConnectionUtils.GetDefaultConnectionFactory());
   }
 
   [Fact]

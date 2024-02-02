@@ -20,13 +20,10 @@
 //    Special thanks goes to him.
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlStorageOptions
+  public class CockroachStorageOptions
   {
     private static readonly TimeSpan _minimumQueuePollInterval = TimeSpan.FromMilliseconds(50);
 
@@ -38,7 +35,7 @@ namespace Hangfire.Cockroach
     private TimeSpan _transactionSerializationTimeout;
     private TimeSpan _countersAggregateInterval;
 
-    public PostgreSqlStorageOptions()
+    public CockroachStorageOptions()
     {
       QueuePollInterval = TimeSpan.FromSeconds(15);
       InvisibilityTimeout = TimeSpan.FromMinutes(30);
@@ -126,9 +123,7 @@ namespace Hangfire.Cockroach
     public bool PrepareSchemaIfNecessary { get; set; }
     public string SchemaName { get; set; }
     public bool EnableTransactionScopeEnlistment { get; set; }
-    public bool EnableLongPolling { get; set; }
-
-    public string? ChangeFeedQuery { get; set; }
+    public bool EnableLongPolling { get; set; } 
 
     private static void ThrowIfValueIsNotPositive(TimeSpan value, string fieldName)
     {
@@ -149,7 +144,7 @@ namespace Hangfire.Cockroach
     {
       if (!AllowUnsafeValues)
       {
-        string message = $"The {fieldName} property value seems to be too low ({value}, lower than suggested minimum of {minValue}). Consider increasing it. If you really need to have such a low value, please set {nameof(PostgreSqlStorageOptions)}.{nameof(AllowUnsafeValues)} to true.";
+        string message = $"The {fieldName} property value seems to be too low ({value}, lower than suggested minimum of {minValue}). Consider increasing it. If you really need to have such a low value, please set {nameof(CockroachStorageOptions)}.{nameof(AllowUnsafeValues)} to true.";
 
         if (value < minValue)
         {

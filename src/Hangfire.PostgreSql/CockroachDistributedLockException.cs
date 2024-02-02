@@ -23,25 +23,15 @@ using System;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlJobQueueProvider : IPersistentJobQueueProvider
+  [Serializable]
+  public class CockroachDistributedLockException : Exception
   {
-    public PostgreSqlJobQueueProvider(PostgreSqlStorage storage, PostgreSqlStorageOptions options)
+    public CockroachDistributedLockException(string message) : base(message)
     {
-      Storage = storage ?? throw new ArgumentNullException(nameof(storage));
-      Options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    public PostgreSqlStorageOptions Options { get; }
-    public PostgreSqlStorage Storage { get; }
-
-    public IPersistentJobQueue GetJobQueue()
+    public CockroachDistributedLockException(string message, Exception innerException) : base(message, innerException)
     {
-      return new PostgreSqlJobQueue(Storage);
-    }
-
-    public IPersistentJobQueueMonitoringApi GetJobQueueMonitoringApi()
-    {
-      return new PostgreSqlJobQueueMonitoringApi(Storage);
     }
   }
 }

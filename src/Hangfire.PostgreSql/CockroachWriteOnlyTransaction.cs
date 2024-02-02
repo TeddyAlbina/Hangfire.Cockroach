@@ -33,16 +33,16 @@ using Hangfire.Storage;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlWriteOnlyTransaction : JobStorageTransaction
+  public class CockroachWriteOnlyTransaction : JobStorageTransaction
   {
     private readonly Queue<Action<IDbConnection>> _commandQueue = new();
     private readonly Func<DbConnection> _dedicatedConnectionFunc;
     private readonly List<string> _queuesWithAddedJobs = new();
 
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
-    public PostgreSqlWriteOnlyTransaction(
-      PostgreSqlStorage storage,
+    public CockroachWriteOnlyTransaction(
+      CockroachStorage storage,
       Func<DbConnection> dedicatedConnectionFunc)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));
@@ -68,7 +68,7 @@ namespace Hangfire.Cockroach
         if (args.Transaction.TransactionInformation.Status == TransactionStatus.Committed)
         {
           // Triggers signals for all queues to which jobs have been added in this transaction
-          _queuesWithAddedJobs.ForEach(PostgreSqlJobQueue._queueEventRegistry.Set);
+          _queuesWithAddedJobs.ForEach(CockroachJobQueue._queueEventRegistry.Set);
           _queuesWithAddedJobs.Clear();
         }
       };

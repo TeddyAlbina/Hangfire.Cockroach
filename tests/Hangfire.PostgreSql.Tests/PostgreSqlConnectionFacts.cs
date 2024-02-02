@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Dapper;
-using Hangfire.Common;
 using Hangfire.Cockroach.Factories;
 using Hangfire.Cockroach.Tests.Entities;
 using Hangfire.Cockroach.Tests.Utils;
+using Hangfire.Common;
 using Hangfire.Server;
 using Hangfire.Storage;
 using Moq;
@@ -38,7 +37,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenStorageIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlConnection(null));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachConnection(null));
 
       Assert.Equal("storage", exception.ParamName);
     }
@@ -48,7 +47,7 @@ namespace Hangfire.Cockroach.Tests
     public void Ctor_ThrowsAnException_WhenOptionsIsNull()
     {
       ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
-        () => new PostgreSqlConnection(new PostgreSqlStorage(ConnectionUtils.GetDefaultConnectionFactory(), null)));
+        () => new CockroachConnection(new CockroachStorage(ConnectionUtils.GetDefaultConnectionFactory(), null)));
 
       Assert.Equal("options", exception.ParamName);
     }
@@ -1265,29 +1264,29 @@ namespace Hangfire.Cockroach.Tests
       });
     }
 
-    private void UseConnections(Action<NpgsqlConnection, PostgreSqlConnection> action)
+    private void UseConnections(Action<NpgsqlConnection, CockroachConnection> action)
     {
-      PostgreSqlStorage storage = _fixture.SafeInit();
+      CockroachStorage storage = _fixture.SafeInit();
       action(storage.CreateAndOpenConnection(), storage.GetStorageConnection());
     }
 
-    private void UseConnection(Action<PostgreSqlConnection> action)
+    private void UseConnection(Action<CockroachConnection> action)
     {
-      PostgreSqlStorage storage = _fixture.SafeInit();
+      CockroachStorage storage = _fixture.SafeInit();
       action(storage.GetStorageConnection());
     }
 
-    private static void UseDisposableConnection(Action<PostgreSqlConnection> action)
+    private static void UseDisposableConnection(Action<CockroachConnection> action)
     {
       using (NpgsqlConnection sqlConnection = ConnectionUtils.CreateConnection())
       {
-        PostgreSqlStorageOptions options = new() {
+        CockroachStorageOptions options = new() {
           EnableTransactionScopeEnlistment = true,
           SchemaName = GetSchemaName(),
           TransactionSynchronisationTimeout = TimeSpan.FromSeconds(1),
         };
-        PostgreSqlStorage storage = new(new ExistingNpgsqlConnectionFactory(sqlConnection, options), options);
-        using (PostgreSqlConnection connection = storage.GetStorageConnection())
+        CockroachStorage storage = new(new ExistingNpgsqlConnectionFactory(sqlConnection, options), options);
+        using (CockroachConnection connection = storage.GetStorageConnection())
         {
           action(connection);
         }

@@ -25,15 +25,15 @@ using Hangfire.Storage;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlFetchedJob : IFetchedJob
+  public class CockroachFetchedJob : IFetchedJob
   {
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
     private bool _disposed;
     private bool _removedFromQueue;
     private bool _requeued;
 
-    public PostgreSqlFetchedJob(
-      PostgreSqlStorage storage,
+    public CockroachFetchedJob(
+      CockroachStorage storage,
       Guid id,
       string jobId,
       string queue)

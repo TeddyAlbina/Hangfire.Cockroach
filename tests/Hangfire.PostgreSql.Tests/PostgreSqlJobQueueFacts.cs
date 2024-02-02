@@ -30,7 +30,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenStorageIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlJobQueue(null));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachJobQueue(null));
 
       Assert.Equal("storage", exception.ParamName);
     }
@@ -40,7 +40,7 @@ namespace Hangfire.Cockroach.Tests
     public void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsNull()
     {
       UseConnection((_, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, false);
+        CockroachJobQueue queue = CreateJobQueue(storage, false);
 
         ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => queue.Dequeue(null, CreateTimingOutCancellationToken()));
 
@@ -53,7 +53,7 @@ namespace Hangfire.Cockroach.Tests
     public void Dequeue_ShouldFetchAJob_FromQueueWithHigherPriority()
     {
       UseConnection((connection, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, false);
+        CockroachJobQueue queue = CreateJobQueue(storage, false);
         CancellationToken token = CreateTimingOutCancellationToken();
 
         queue.Enqueue(connection, "1", Id1.ToString());
@@ -87,7 +87,7 @@ namespace Hangfire.Cockroach.Tests
     private void Dequeue_ShouldThrowAnException_WhenQueuesCollectionIsEmpty(bool useNativeDatabaseTransactions)
     {
       UseConnection((_, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => queue.Dequeue([], CreateTimingOutCancellationToken()));
 
@@ -115,7 +115,7 @@ namespace Hangfire.Cockroach.Tests
       UseConnection((_, storage) => {
         CancellationTokenSource cts = new CancellationTokenSource();
         cts.Cancel();
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         Assert.Throws<OperationCanceledException>(() => queue.Dequeue(_defaultQueues, cts.Token));
       });
@@ -139,7 +139,7 @@ namespace Hangfire.Cockroach.Tests
     {
       UseConnection((_, storage) => {
         CancellationTokenSource cts = new CancellationTokenSource(200);
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         Assert.Throws<OperationCanceledException>(() => queue.Dequeue(_defaultQueues, cts.Token));
       });
@@ -170,10 +170,10 @@ namespace Hangfire.Cockroach.Tests
       UseConnection((connection, storage) => {
         var id = connection.QuerySingle<Guid>(arrangeSql,
           new { JobId = Id1, Queue = "default" });
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         // Act
-        PostgreSqlFetchedJob payload = (PostgreSqlFetchedJob)queue.Dequeue(_defaultQueues,
+        CockroachFetchedJob payload = (CockroachFetchedJob)queue.Dequeue(_defaultQueues,
           CreateTimingOutCancellationToken());
 
         // Assert
@@ -213,7 +213,7 @@ namespace Hangfire.Cockroach.Tests
       UseConnection((connection, storage) => {
         connection.Execute(arrangeSql,
           new { InvocationData = new JsonParameter(""), Arguments = new JsonParameter("", JsonParameter.ValueType.Array), Queue = "default" });
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         // Act
         IFetchedJob payload = queue.Dequeue(_defaultQueues,
@@ -266,7 +266,7 @@ namespace Hangfire.Cockroach.Tests
             InvocationData = new JsonParameter(""),
             Arguments = new JsonParameter("", JsonParameter.ValueType.Array),
           });
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         // Act
         IFetchedJob payload = queue.Dequeue(_defaultQueues,
@@ -309,7 +309,7 @@ namespace Hangfire.Cockroach.Tests
             new { Queue = "default", InvocationData = new JsonParameter(""), Arguments = new JsonParameter("", JsonParameter.ValueType.Array) },
             new { Queue = "default", InvocationData = new JsonParameter(""), Arguments = new JsonParameter("", JsonParameter.ValueType.Array) },
           });
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         // Act
         IFetchedJob payload = queue.Dequeue(_defaultQueues,
@@ -350,7 +350,7 @@ namespace Hangfire.Cockroach.Tests
         SELECT i.""id"", @Queue FROM i;
       ";
       UseConnection((connection, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         connection.Execute(arrangeSql,
           new { Queue = "critical", InvocationData = new JsonParameter(""), Arguments = new JsonParameter("", JsonParameter.ValueType.Array) });
@@ -395,15 +395,15 @@ namespace Hangfire.Cockroach.Tests
             new { Queue = queueNames.Last(), InvocationData = new JsonParameter(""), Arguments = new JsonParameter("", JsonParameter.ValueType.Array) },
           });
 
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
-        PostgreSqlFetchedJob queueFirst = (PostgreSqlFetchedJob)queue.Dequeue(queueNames,
+        CockroachFetchedJob queueFirst = (CockroachFetchedJob)queue.Dequeue(queueNames,
           CreateTimingOutCancellationToken());
 
         Assert.NotNull(queueFirst.JobId);
         Assert.Contains(queueFirst.Queue, queueNames);
 
-        PostgreSqlFetchedJob queueLast = (PostgreSqlFetchedJob)queue.Dequeue(queueNames,
+        CockroachFetchedJob queueLast = (CockroachFetchedJob)queue.Dequeue(queueNames,
           CreateTimingOutCancellationToken());
 
         Assert.NotNull(queueLast.JobId);
@@ -430,7 +430,7 @@ namespace Hangfire.Cockroach.Tests
     public void Queues_Should_Support_Long_Queue_Names()
     {
       UseConnection((connection, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, false);
+        CockroachJobQueue queue = CreateJobQueue(storage, false);
 
         string name = "very_long_name_that_is_over_20_characters_long_or_something";
 
@@ -448,7 +448,7 @@ namespace Hangfire.Cockroach.Tests
     public void Queues_Can_Dequeue_On_Signal()
     {
       UseConnection((connection, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, false);
+        CockroachJobQueue queue = CreateJobQueue(storage, false);
         IFetchedJob job = null;
         //as UseConnection does not support async-await we have to work with Thread.Sleep
 
@@ -520,7 +520,7 @@ namespace Hangfire.Cockroach.Tests
     private void Enqueue_AddsAJobToTheQueue(bool useNativeDatabaseTransactions)
     {
       UseConnection((connection, storage) => {
-        PostgreSqlJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
+        CockroachJobQueue queue = CreateJobQueue(storage, useNativeDatabaseTransactions);
 
         queue.Enqueue(connection, "default", Id1.ToString());
 
@@ -542,17 +542,17 @@ namespace Hangfire.Cockroach.Tests
 #pragma warning restore xUnit1013 // Public method should be marked as test
     { }
 
-    private static PostgreSqlJobQueue CreateJobQueue(PostgreSqlStorage storage, bool useNativeDatabaseTransactions, bool enableLongPolling = false)
+    private static CockroachJobQueue CreateJobQueue(CockroachStorage storage, bool useNativeDatabaseTransactions, bool enableLongPolling = false)
     {
       storage.Options.SchemaName = GetSchemaName();
       storage.Options.UseNativeDatabaseTransactions = useNativeDatabaseTransactions;
       storage.Options.EnableLongPolling = enableLongPolling;
-      return new PostgreSqlJobQueue(storage);
+      return new CockroachJobQueue(storage);
     }
 
-    private void UseConnection(Action<IDbConnection, PostgreSqlStorage> action)
+    private void UseConnection(Action<IDbConnection, CockroachStorage> action)
     {
-      PostgreSqlStorage storage = _fixture.SafeInit();
+      CockroachStorage storage = _fixture.SafeInit();
       storage.UseConnection(null, connection => {
         action(connection, storage);
 

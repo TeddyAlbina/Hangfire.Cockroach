@@ -41,9 +41,9 @@ namespace Hangfire.Cockroach
 
     private readonly ILog _logger = LogProvider.For<CountersAggregator>();
     private readonly TimeSpan _interval;
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
-    public CountersAggregator(PostgreSqlStorage storage, TimeSpan interval)
+    public CountersAggregator(CockroachStorage storage, TimeSpan interval)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));
       _interval = interval;

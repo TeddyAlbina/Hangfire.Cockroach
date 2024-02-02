@@ -32,7 +32,7 @@ using IsolationLevel = System.Data.IsolationLevel;
 
 namespace Hangfire.Cockroach
 {
-  public sealed class PostgreSqlDistributedLock
+  public sealed class CockroachDistributedLock
   {
     private static readonly ILog _logger = LogProvider.GetCurrentClassLogger();
 
@@ -42,7 +42,7 @@ namespace Hangfire.Cockroach
       _logger.Log(isConcurrencyError ? LogLevel.Trace : LogLevel.Warn, () => $"{resource}: {message}", ex);
     }
 
-    internal static void Acquire(IDbConnection connection, string resource, TimeSpan timeout, PostgreSqlStorageOptions options)
+    internal static void Acquire(IDbConnection connection, string resource, TimeSpan timeout, CockroachStorageOptions options)
     {
       if (connection == null)
       {
@@ -72,7 +72,7 @@ namespace Hangfire.Cockroach
       LockHandler.Lock(resource, timeout, connection, options);
     }
 
-    internal static void Release(IDbConnection connection, string resource, PostgreSqlStorageOptions options)
+    internal static void Release(IDbConnection connection, string resource, CockroachStorageOptions options)
     {
       if (connection == null)
       {
@@ -91,13 +91,13 @@ namespace Hangfire.Cockroach
 
       if (!LockHandler.TryRemoveLock(resource, connection, options, false))
       {
-        throw new PostgreSqlDistributedLockException($"Could not release a lock on the resource '{resource}'. Lock does not exist.");
+        throw new CockroachDistributedLockException($"Could not release a lock on the resource '{resource}'. Lock does not exist.");
       }
     }
 
     private static class LockHandler
     {
-      public static void Lock(string resource, TimeSpan timeout, IDbConnection connection, PostgreSqlStorageOptions options)
+      public static void Lock(string resource, TimeSpan timeout, IDbConnection connection, CockroachStorageOptions options)
       {
         Stopwatch lockAcquiringTime = Stopwatch.StartNew();
 
@@ -153,10 +153,10 @@ namespace Hangfire.Cockroach
           }
         }
 
-        throw new PostgreSqlDistributedLockException($@"Could not place a lock on the resource '{resource}': Lock timeout.", lastException);
+        throw new CockroachDistributedLockException($@"Could not place a lock on the resource '{resource}': Lock timeout.", lastException);
       }
 
-      public static bool TryRemoveLock(string resource, IDbConnection connection, PostgreSqlStorageOptions options, bool onlyExpired)
+      public static bool TryRemoveLock(string resource, IDbConnection connection, CockroachStorageOptions options, bool onlyExpired)
       {
         
 

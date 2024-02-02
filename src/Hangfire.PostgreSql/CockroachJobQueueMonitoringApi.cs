@@ -26,11 +26,11 @@ using Dapper;
 
 namespace Hangfire.Cockroach
 {
-  internal class PostgreSqlJobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
+  internal class CockroachJobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
   {
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
-    public PostgreSqlJobQueueMonitoringApi(PostgreSqlStorage storage)
+    public CockroachJobQueueMonitoringApi(CockroachStorage storage)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));
     }

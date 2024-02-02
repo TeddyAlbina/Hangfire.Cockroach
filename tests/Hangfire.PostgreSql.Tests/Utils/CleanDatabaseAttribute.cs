@@ -53,7 +53,7 @@ namespace Hangfire.Cockroach.Tests.Utils
         connection.Open();
       }
 
-      PostgreSqlObjectsInstaller.Install(connection);
+      CockroachObjectsInstaller.Install(connection);
       PostgreSqlTestObjectsInitializer.CleanTables(connection);
     }
 

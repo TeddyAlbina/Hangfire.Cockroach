@@ -36,50 +36,20 @@ using IsolationLevel = System.Transactions.IsolationLevel;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlStorage : JobStorage
+  public class CockroachStorage : JobStorage
   {
     private readonly IConnectionFactory _connectionFactory;
-    
+
     private readonly Dictionary<string, bool> _features =
       new(StringComparer.OrdinalIgnoreCase)
       {
         { JobStorageFeatures.JobQueueProperty, true },
       };
 
-    [Obsolete("Will be removed in 2.0, please use the overload with IConnectionFactory argument")]
-    public PostgreSqlStorage(string connectionString) : this(connectionString, new PostgreSqlStorageOptions()) { }
 
-    [Obsolete("Will be removed in 2.0, please use the overload with IConnectionFactory argument")]
-    public PostgreSqlStorage(string connectionString, PostgreSqlStorageOptions options) : this(connectionString, null, options) { }
+    public CockroachStorage(IConnectionFactory connectionFactory) : this(connectionFactory, new CockroachStorageOptions()) { }
 
-    /// <summary>
-    ///   Initializes PostgreSqlStorage from the provided PostgreSqlStorageOptions and either the provided connection string.
-    /// </summary>
-    /// <param name="connectionString">PostgreSQL connection string</param>
-    /// <param name="connectionSetup">Optional setup action to apply to created connections</param>
-    /// <param name="options">Storage options</param>
-    /// <exception cref="ArgumentNullException"><paramref name="connectionString" /> argument is null.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="options" /> argument is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="connectionString" /> argument not a valid PostgreSQL connection string config file.</exception>
-    [Obsolete("Will be removed in 2.0, please use the overload with IConnectionFactory argument")]
-    public PostgreSqlStorage(string connectionString, Action<NpgsqlConnection> connectionSetup, PostgreSqlStorageOptions options) : this(new NpgsqlConnectionFactory(connectionString, options, connectionSetup), options) { }
-
-    [Obsolete("Will be removed in 2.0, please use the overload with IConnectionFactory argument")]
-    public PostgreSqlStorage(NpgsqlConnection existingConnection) : this(existingConnection, new PostgreSqlStorageOptions()) { }
-
-    /// <summary>
-    ///   Initializes a new instance of the <see cref="PostgreSqlStorage" /> class with
-    ///   explicit instance of the <see cref="NpgsqlConnection" /> class that will be used
-    ///   to query the data.
-    /// </summary>
-    /// <param name="existingConnection">Existing connection</param>
-    /// <param name="options">PostgreSqlStorageOptions</param>
-    [Obsolete("Will be removed in 2.0, please use the overload with IConnectionFactory argument")]
-    public PostgreSqlStorage(NpgsqlConnection existingConnection, PostgreSqlStorageOptions options) : this(new ExistingNpgsqlConnectionFactory(existingConnection, options), options) { }
-
-    public PostgreSqlStorage(IConnectionFactory connectionFactory) : this(connectionFactory, new PostgreSqlStorageOptions()) { }
-
-    public PostgreSqlStorage(IConnectionFactory connectionFactory, PostgreSqlStorageOptions options)
+    public CockroachStorage(IConnectionFactory connectionFactory, CockroachStorageOptions options)
     {
       _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
       Options = options ?? throw new ArgumentNullException(nameof(options));
@@ -89,7 +59,7 @@ namespace Hangfire.Cockroach
         NpgsqlConnection connection = CreateAndOpenConnection();
         try
         {
-          PostgreSqlObjectsInstaller.Install(connection, options.SchemaName);
+          CockroachObjectsInstaller.Install(connection, options.SchemaName);
         }
         finally
         {
@@ -105,16 +75,16 @@ namespace Hangfire.Cockroach
 
     public PersistentJobQueueProviderCollection QueueProviders { get; internal set; }
 
-    internal PostgreSqlStorageOptions Options { get; }
+    internal CockroachStorageOptions Options { get; }
 
     public override IMonitoringApi GetMonitoringApi()
     {
-      return new PostgreSqlMonitoringApi(this, QueueProviders);
+      return new CockroachMonitoringApi(this, QueueProviders);
     }
 
     public override IStorageConnection GetConnection()
     {
-      return new PostgreSqlConnection(this);
+      return new CockroachConnection(this);
     }
 
 #pragma warning disable CS0618
@@ -332,7 +302,7 @@ namespace Hangfire.Cockroach
 
     private void InitializeQueueProviders()
     {
-      PostgreSqlJobQueueProvider defaultQueueProvider = new(this, Options);
+      CockroachJobQueueProvider defaultQueueProvider = new(this, Options);
       QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
     }
 
@@ -343,7 +313,7 @@ namespace Hangfire.Cockroach
         throw new ArgumentNullException(nameof(featureId));
       }
 
-      return _features.TryGetValue(featureId, out bool isSupported) 
+      return _features.TryGetValue(featureId, out bool isSupported)
         ? isSupported
         : base.HasFeature(featureId);
     }

@@ -7,7 +7,7 @@ namespace Hangfire.Cockroach.Tests.Utils
 {
   public class PostgreSqlStorageFixture : IDisposable
   {
-    private readonly PostgreSqlStorageOptions _storageOptions;
+    private readonly CockroachStorageOptions _storageOptions;
     private bool _initialized;
     private NpgsqlConnection _mainConnection;
 
@@ -21,7 +21,7 @@ namespace Hangfire.Cockroach.Tests.Utils
 
       PersistentJobQueueProviderCollection = new PersistentJobQueueProviderCollection(provider.Object);
 
-      _storageOptions = new PostgreSqlStorageOptions {
+      _storageOptions = new CockroachStorageOptions {
         SchemaName = ConnectionUtils.GetSchemaName(),
         EnableTransactionScopeEnlistment = true,
       };
@@ -31,7 +31,7 @@ namespace Hangfire.Cockroach.Tests.Utils
 
     public PersistentJobQueueProviderCollection PersistentJobQueueProviderCollection { get; }
 
-    public PostgreSqlStorage Storage { get; private set; }
+    public CockroachStorage Storage { get; private set; }
     public NpgsqlConnection MainConnection => _mainConnection ?? (_mainConnection = ConnectionUtils.CreateConnection());
 
     public void Dispose()
@@ -40,28 +40,28 @@ namespace Hangfire.Cockroach.Tests.Utils
       _mainConnection = null;
     }
 
-    public void SetupOptions(Action<PostgreSqlStorageOptions> storageOptionsConfigure)
+    public void SetupOptions(Action<CockroachStorageOptions> storageOptionsConfigure)
     {
       storageOptionsConfigure(_storageOptions);
     }
 
-    public PostgreSqlStorage SafeInit(NpgsqlConnection connection = null)
+    public CockroachStorage SafeInit(NpgsqlConnection connection = null)
     {
       return _initialized
         ? Storage
         : ForceInit(connection);
     }
 
-    public PostgreSqlStorage ForceInit(NpgsqlConnection connection = null)
+    public CockroachStorage ForceInit(NpgsqlConnection connection = null)
     {
-      Storage = new PostgreSqlStorage(new ExistingNpgsqlConnectionFactory(connection ?? MainConnection, _storageOptions), _storageOptions) {
+      Storage = new CockroachStorage(new ExistingNpgsqlConnectionFactory(connection ?? MainConnection, _storageOptions), _storageOptions) {
         QueueProviders = PersistentJobQueueProviderCollection,
       };
       _initialized = true;
       return Storage;
     }
 
-    public void SafeInit(PostgreSqlStorageOptions options,
+    public void SafeInit(CockroachStorageOptions options,
       PersistentJobQueueProviderCollection jobQueueProviderCollection = null,
       NpgsqlConnection connection = null)
     {
@@ -74,11 +74,11 @@ namespace Hangfire.Cockroach.Tests.Utils
       Storage.QueueProviders = jobQueueProviderCollection;
     }
 
-    public void ForceInit(PostgreSqlStorageOptions options,
+    public void ForceInit(CockroachStorageOptions options,
       PersistentJobQueueProviderCollection jobQueueProviderCollection = null,
       NpgsqlConnection connection = null)
     {
-      Storage = new PostgreSqlStorage(new ExistingNpgsqlConnectionFactory(connection ?? MainConnection, options), options) {
+      Storage = new CockroachStorage(new ExistingNpgsqlConnectionFactory(connection ?? MainConnection, options), options) {
         QueueProviders = jobQueueProviderCollection,
       };
       _initialized = true;

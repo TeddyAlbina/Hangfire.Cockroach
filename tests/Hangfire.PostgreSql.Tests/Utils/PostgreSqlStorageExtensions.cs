@@ -2,9 +2,9 @@
 {
   internal static class PostgreSqlStorageExtensions
   {
-    public static PostgreSqlConnection GetStorageConnection(this PostgreSqlStorage storage)
+    public static CockroachConnection GetStorageConnection(this CockroachStorage storage)
     {
-      return storage.GetConnection() as PostgreSqlConnection;
+      return storage.GetConnection() as CockroachConnection;
     }
   }
 }

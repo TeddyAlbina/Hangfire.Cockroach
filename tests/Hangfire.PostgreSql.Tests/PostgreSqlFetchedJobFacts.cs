@@ -15,17 +15,17 @@ namespace Hangfire.Cockroach.Tests
     private readonly Guid Id2 = new Guid("66D8F927-D5DD-4C42-A6B0-E683CA585069");
     private readonly Guid Id3 = new Guid("57354D89-8A41-42ED-9F78-DC3FD9F6DD32");
 
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
     public PostgreSqlFetchedJobFacts()
     {
-      _storage = new PostgreSqlStorage(ConnectionUtils.GetDefaultConnectionFactory());
+      _storage = new CockroachStorage(ConnectionUtils.GetDefaultConnectionFactory());
     }
 
     [Fact]
     public void Ctor_ThrowsAnException_WhenStorageIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(null, Id1, JobId, Queue));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachFetchedJob(null, Id1, JobId, Queue));
 
       Assert.Equal("storage", exception.ParamName);
     }
@@ -33,7 +33,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenJobIdIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, Id1, null, Queue));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachFetchedJob(_storage, Id1, null, Queue));
 
       Assert.Equal("jobId", exception.ParamName);
     }
@@ -41,7 +41,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_ThrowsAnException_WhenQueueIsNull()
     {
-      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new PostgreSqlFetchedJob(_storage, Id1, JobId, null));
+      ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => new CockroachFetchedJob(_storage, Id1, JobId, null));
 
       Assert.Equal("queue", exception.ParamName);
     }
@@ -49,7 +49,7 @@ namespace Hangfire.Cockroach.Tests
     [Fact]
     public void Ctor_CorrectlySets_AllInstanceProperties()
     {
-      PostgreSqlFetchedJob fetchedJob = new(_storage, Id1, JobId, Queue);
+      CockroachFetchedJob fetchedJob = new(_storage, Id1, JobId, Queue);
 
       Assert.Equal(Id1, fetchedJob.Id);
       Assert.Equal(JobId, fetchedJob.JobId);
@@ -62,7 +62,7 @@ namespace Hangfire.Cockroach.Tests
     {
       // Arrange
       var id = CreateJobQueueRecord(_storage, Id1.ToString(), "default");
-      PostgreSqlFetchedJob processingJob = new(_storage, id, "1", "default");
+      CockroachFetchedJob processingJob = new(_storage, id, "1", "default");
 
       // Act
       processingJob.RemoveFromQueue();
@@ -82,7 +82,7 @@ namespace Hangfire.Cockroach.Tests
       CreateJobQueueRecord(_storage, Id2.ToString(), "critical");
       CreateJobQueueRecord(_storage, Id3.ToString(), "default");
 
-      PostgreSqlFetchedJob fetchedJob = new PostgreSqlFetchedJob(_storage, Guid.NewGuid(), Id1.ToString(), "default");
+      CockroachFetchedJob fetchedJob = new CockroachFetchedJob(_storage, Guid.NewGuid(), Id1.ToString(), "default");
 
       // Act
       fetchedJob.RemoveFromQueue();
@@ -99,7 +99,7 @@ namespace Hangfire.Cockroach.Tests
     {
       // Arrange
       var id = CreateJobQueueRecord(_storage, Id1.ToString(), "default");
-      PostgreSqlFetchedJob processingJob = new(_storage, id, Id1.ToString(), "default");
+      CockroachFetchedJob processingJob = new(_storage, id, Id1.ToString(), "default");
 
       // Act
       processingJob.Requeue();
@@ -116,7 +116,7 @@ namespace Hangfire.Cockroach.Tests
     {
       // Arrange
       var id = CreateJobQueueRecord(_storage, Id3.ToString(), "default");
-      PostgreSqlFetchedJob processingJob = new(_storage, id, Id3.ToString(), "default");
+      CockroachFetchedJob processingJob = new(_storage, id, Id3.ToString(), "default");
 
       // Act
       processingJob.Dispose();
@@ -127,7 +127,7 @@ namespace Hangfire.Cockroach.Tests
       Assert.Null(record.fetchedat);
     }
 
-    private static Guid CreateJobQueueRecord(PostgreSqlStorage storage, string jobId, string queue)
+    private static Guid CreateJobQueueRecord(CockroachStorage storage, string jobId, string queue)
     {
       string arrangeSql = $@"
         INSERT INTO ""{GetSchemaName()}"".""jobqueue"" (""jobid"", ""queue"", ""fetchedat"")

@@ -17,7 +17,7 @@ namespace Hangfire.Cockroach.Tests
         UseConnection(connection => {
           string schemaName = "hangfire_tests_" + Guid.NewGuid().ToString().Replace("-", "_").ToLower(CultureInfo.InvariantCulture);
 
-          PostgreSqlObjectsInstaller.Install(connection, schemaName);
+          CockroachObjectsInstaller.Install(connection, schemaName);
 
           int lastVersion = connection.Query<int>($@"SELECT version FROM ""{schemaName}"".""schema""").Single();
           Assert.Equal(21, lastVersion);
@@ -36,7 +36,7 @@ namespace Hangfire.Cockroach.Tests
         UseConnection(connection => {
           string schemaName = "Hangfire_Tests_" + Guid.NewGuid().ToString().Replace("-", "_").ToLower(CultureInfo.InvariantCulture);
 
-          PostgreSqlObjectsInstaller.Install(connection, schemaName);
+          CockroachObjectsInstaller.Install(connection, schemaName);
 
           int lastVersion = connection.Query<int>($@"SELECT version FROM ""{schemaName}"".""schema""").Single();
           Assert.Equal(21, lastVersion);

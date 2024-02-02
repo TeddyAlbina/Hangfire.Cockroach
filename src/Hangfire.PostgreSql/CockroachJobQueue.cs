@@ -33,14 +33,14 @@ using Npgsql;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlJobQueue : IPersistentJobQueue
+  public class CockroachJobQueue : IPersistentJobQueue
   {
     private const string JobNotificationChannel = "new_job";
 
     internal static readonly AutoResetEventRegistry _queueEventRegistry = new();
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorage _storage;
 
-    public PostgreSqlJobQueue(PostgreSqlStorage storage)
+    public CockroachJobQueue(CockroachStorage storage)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));
       SignalDequeue = new AutoResetEvent(false);
@@ -199,7 +199,7 @@ namespace Hangfire.Cockroach
       }
       while (fetchedJob == null);
 
-      return new PostgreSqlFetchedJob(_storage,
+      return new CockroachFetchedJob(_storage,
         fetchedJob.Id,
         fetchedJob.JobId.ToString(),
         fetchedJob.Queue);
@@ -268,7 +268,7 @@ namespace Hangfire.Cockroach
       }
       while (markJobAsFetched == null);
 
-      return new PostgreSqlFetchedJob(_storage,
+      return new CockroachFetchedJob(_storage,
         markJobAsFetched.Id,
         markJobAsFetched.JobId.ToString(),
         markJobAsFetched.Queue);

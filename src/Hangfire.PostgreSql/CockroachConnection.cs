@@ -37,15 +37,15 @@ using IsolationLevel = System.Transactions.IsolationLevel;
 
 namespace Hangfire.Cockroach
 {
-  public class PostgreSqlConnection : JobStorageConnection
+  public class CockroachConnection : JobStorageConnection
   {
     private readonly Dictionary<string, HashSet<Guid>> _lockedResources;
-    private readonly PostgreSqlStorageOptions _options;
-    private readonly PostgreSqlStorage _storage;
+    private readonly CockroachStorageOptions _options;
+    private readonly CockroachStorage _storage;
 
     private DbConnection _dedicatedConnection;
 
-    public PostgreSqlConnection(PostgreSqlStorage storage)
+    public CockroachConnection(CockroachStorage storage)
     {
       _storage = storage ?? throw new ArgumentNullException(nameof(storage));
       _options = storage.Options ?? throw new ArgumentNullException(nameof(storage.Options));
@@ -65,7 +65,7 @@ namespace Hangfire.Cockroach
 
     public override IWriteOnlyTransaction CreateWriteTransaction()
     {
-      return new PostgreSqlWriteOnlyTransaction(_storage, () => _dedicatedConnection);
+      return new CockroachWriteOnlyTransaction(_storage, () => _dedicatedConnection);
     }
 
     public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
@@ -660,7 +660,7 @@ namespace Hangfire.Cockroach
       {
         try
         {
-          PostgreSqlDistributedLock.Acquire(_dedicatedConnection, resource, timeout, _options);
+          CockroachDistributedLock.Acquire(_dedicatedConnection, resource, timeout, _options);
         }
         catch (Exception)
         {
@@ -694,7 +694,7 @@ namespace Hangfire.Cockroach
           && _lockedResources.Remove(resource)
           && _dedicatedConnection.State == ConnectionState.Open)
         {
-          PostgreSqlDistributedLock.Release(_dedicatedConnection, resource, _options);
+          CockroachDistributedLock.Release(_dedicatedConnection, resource, _options);
         }
       }
       catch (Exception)
@@ -716,11 +716,11 @@ namespace Hangfire.Cockroach
 
     private class DisposableLock : IDisposable
     {
-      private readonly PostgreSqlConnection _connection;
+      private readonly CockroachConnection _connection;
       private readonly Guid _lockId;
       private readonly string _resource;
 
-      public DisposableLock(PostgreSqlConnection connection, string resource, Guid lockId)
+      public DisposableLock(CockroachConnection connection, string resource, Guid lockId)
       {
         _connection = connection;
         _resource = resource;

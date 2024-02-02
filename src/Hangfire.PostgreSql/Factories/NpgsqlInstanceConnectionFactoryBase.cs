@@ -6,10 +6,10 @@ namespace Hangfire.Cockroach.Factories;
 
 public abstract class NpgsqlInstanceConnectionFactoryBase : IConnectionFactory
 {
-  private readonly PostgreSqlStorageOptions _options;
+  private readonly CockroachStorageOptions _options;
   [CanBeNull] private NpgsqlConnectionStringBuilder _connectionStringBuilder;
 
-  protected NpgsqlInstanceConnectionFactoryBase(PostgreSqlStorageOptions options)
+  protected NpgsqlInstanceConnectionFactoryBase(CockroachStorageOptions options)
   {
     _options = options ?? throw new ArgumentNullException(nameof(options));
   }
@@ -37,7 +37,7 @@ public abstract class NpgsqlInstanceConnectionFactoryBase : IConnectionFactory
       // transaction. Also see #248.
       if (!_options.EnableTransactionScopeEnlistment && builder.Enlist)
       {
-        throw new ArgumentException($"TransactionScope enlistment must be enabled by setting {nameof(PostgreSqlStorageOptions)}.{nameof(PostgreSqlStorageOptions.EnableTransactionScopeEnlistment)} to `true`.");
+        throw new ArgumentException($"TransactionScope enlistment must be enabled by setting {nameof(CockroachStorageOptions)}.{nameof(CockroachStorageOptions.EnableTransactionScopeEnlistment)} to `true`.");
       }
 
       return _connectionStringBuilder = builder;
