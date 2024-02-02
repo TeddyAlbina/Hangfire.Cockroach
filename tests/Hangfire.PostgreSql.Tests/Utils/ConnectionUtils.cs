@@ -17,7 +17,7 @@ namespace Hangfire.Cockroach.Tests.Utils
     private const string DefaultDatabaseName = @"hangfire_tests";
     private const string DefaultSchemaName = @"hangfire";
 
-    private const string DefaultConnectionStringTemplate = @"Host=plucky-jaguar-483.jxf.cockroachlabs.cloud; Port=26257; Database=bluecurve-jobs-dev; Username=teddy; Password=YIc-CH22W_lJLl7xZ72CQQ; SSL Mode=VerifyFull;Include Error Detail=true";
+    private const string DefaultConnectionStringTemplate = @"Server=127.0.0.1;Port=5432;Database=postgres;User Id=postgres;Password=password;";
 
     public static string GetDatabaseName()
     {

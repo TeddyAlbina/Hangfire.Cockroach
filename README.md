@@ -1,6 +1,6 @@
-﻿# Hangfire.PostgreSql
+﻿# Hangfire.Cockroach
 
-[![Build status](https://github.com/hangfire-postgres/Hangfire.PostgreSql/actions/workflows/pack.yml/badge.svg)](https://github.com/hangfire-postgres/Hangfire.PostgreSql/actions/workflows/pack.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/hangfire-postgres/Hangfire.PostgreSql?label=Release)](https://github.com/hangfire-postgres/Hangfire.PostgreSql/releases/latest) [![Nuget](https://img.shields.io/nuget/v/Hangfire.PostgreSql?label=NuGet)](https://www.nuget.org/packages/Hangfire.PostgreSql)
+[![Build status](https://github.com/TeddyAlbina/Hangfire.Cockroach/actions/workflows/pack.yml/badge.svg)](https://github.com/TeddyAlbina/Hangfire.Cockroach/actions/workflows/pack.yml) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/hangfire-cockroach/Hangfire.Cockroach?label=Release)](https://github.com/TeddyAlbina/Hangfire.Cockroach/releases/latest) [![Nuget](https://img.shields.io/nuget/v/Hangfire.Cockroach?label=NuGet)](https://www.nuget.org/packages/Hangfire.Cockroach)
 
 This is an plugin to the Hangfire to enable CockroachDB as a storage system.
 Read about hangfire here: https://github.com/HangfireIO/Hangfire#overview
