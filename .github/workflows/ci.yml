@@ -30,6 +30,7 @@ jobs:
           --insecure
           --listen-addr=localhost:26257
           --http-addr=localhost:8080
+          --logtostderr
         ports:
           - 26257:26257
           - 8080:8080
