@@ -95,7 +95,7 @@ jobs:
         env:
           Hangfire_Cockroach_DatabaseName: defaultdb
           Hangfire_Cockroach_SchemaName: hangfire
-          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=prefer;Include Error Detail=true"
+          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; Include Error Detail=true"
 
       - name: Test Report
         uses: dorny/test-reporter@v1
