@@ -25,11 +25,7 @@ jobs:
         env:
           TZ: UTC
           PGTZ: UTC
-        options: >-
-          start-single-node
-          --listen-addr=localhost:26257
-          --insecure 
-          --http-addr=localhost:8080
+        command: start-single-node --insecure --listen-addr=localhost:26257 --http-addr=localhost:8080
         ports:
           - 26257:26257
           - 8080:8080
