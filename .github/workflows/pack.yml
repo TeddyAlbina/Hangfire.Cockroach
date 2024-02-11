@@ -41,22 +41,22 @@ jobs:
     runs-on: ubuntu-latest
 
  
-    services:
-      cockroachdb:
-        image: cockroachdb/cockroach
-        env:
-          TZ: UTC
-        options: >-
-          start-single-node
-          --insecure
-          --listen-addr=localhost:26257
-          --http-addr=localhost:8080
-          --logtostderr
-        ports:
-          - 26257:26257
-          - 8080:8080
-        volumes:
-          - "${PWD}/cockroach-data/crdb:/cockroach/cockroach-data"
+    # services:
+    #   cockroachdb:
+    #     image: cockroachdb/cockroach
+    #     env:
+    #       TZ: UTC
+    #     options: >-
+    #       start-single-node
+    #       --insecure
+    #       --listen-addr=localhost:26257
+    #       --http-addr=localhost:8080
+    #       --logtostderr
+    #     ports:
+    #       - 26257:26257
+    #       - 8080:8080
+    #     volumes:
+    #       - "${PWD}/cockroach-data/crdb:/cockroach/cockroach-data"
 
     steps:
       -
@@ -66,6 +66,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Start a single CockroachDB instance
+        run: |
+            docker pull cockroachdb/cockroach
+            docker run -d --name roach --hostname roach -p 26257:26257 -p 8080:8080 cockroachdb/cockroach start-single-node --insecure
+            sudo apt update && sudo apt install wait-for-it -y
+            wait-for-it -h localhost -p 26257
+            #docker exec roach bash -c "echo 'CREATE DATABASE sequelize_test;' | $CONTAINER_ENTRYPOINT sql --insecure"
 
       - name: Checkout
         uses: actions/checkout@v3
