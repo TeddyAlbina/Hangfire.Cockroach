@@ -6,10 +6,10 @@ on:
     branches: ["master"]
     paths: ["src/**"]
 
-env:
-  Hangfire_Cockroach_DatabaseName: defaultdb
-  Hangfire_Cockroach_SchemaName: hangfire
-  Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true"
+# env:
+#   Hangfire_Cockroach_DatabaseName: defaultdb
+#   Hangfire_Cockroach_SchemaName: hangfire
+#   Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true"
 
 jobs:
   build:
@@ -87,11 +87,15 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
       - name: Test
-        run: dotnet test -c Release --no-build --verbosity normal --logger "trx;LogFileName=TestResults.trx" || true
+        run: |
+            echo $Hangfire_Cockroach_DatabaseName
+            echo $Hangfire_Cockroach_SchemaName
+            echo $Hangfire_Cockroach_ConnectionStringTemplate
+            dotnet test -c Release --no-build --verbosity normal --logger "trx;LogFileName=TestResults.trx" || true
         env:
           Hangfire_Cockroach_DatabaseName: defaultdb
           Hangfire_Cockroach_SchemaName: hangfire
-          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true"
+          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=prefer;Include Error Detail=true"
 
       - name: Test Report
         uses: dorny/test-reporter@v1
