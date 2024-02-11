@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyTitle>Hangfire.PostgreSql.Tests</AssemblyTitle>
-    <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>Hangfire.PostgreSql.Tests</AssemblyName>
-    <PackageId>Hangfire.PostgreSql.Tests</PackageId>
+    <AssemblyTitle>Hangfire.Cockroach.Tests</AssemblyTitle>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Hangfire.Cockroach.Tests</AssemblyName>
+    <PackageId>Hangfire.Cockroach.Tests</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <LangVersion>default</LangVersion>
   </PropertyGroup>

@@ -21,27 +21,20 @@
 
 using System;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public sealed class CockroachJobQueueProvider : IPersistentJobQueueProvider
 {
-  public class CockroachJobQueueProvider : IPersistentJobQueueProvider
-  {
     public CockroachJobQueueProvider(CockroachStorage storage, CockroachStorageOptions options)
     {
-      Storage = storage ?? throw new ArgumentNullException(nameof(storage));
-      Options = options ?? throw new ArgumentNullException(nameof(options));
+        this.Storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        this.Options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     public CockroachStorageOptions Options { get; }
     public CockroachStorage Storage { get; }
 
-    public IPersistentJobQueue GetJobQueue()
-    {
-      return new CockroachJobQueue(Storage);
-    }
+    public IPersistentJobQueue GetJobQueue() => new CockroachJobQueue(this.Storage);
 
-    public IPersistentJobQueueMonitoringApi GetJobQueueMonitoringApi()
-    {
-      return new CockroachJobQueueMonitoringApi(Storage);
-    }
-  }
+    public IPersistentJobQueueMonitoringApi GetJobQueueMonitoringApi() => new CockroachJobQueueMonitoringApi(this.Storage);
 }

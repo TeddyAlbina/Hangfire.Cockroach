@@ -21,10 +21,10 @@
 
 using System;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public static class CockroachBootstrapperConfigurationExtensions
 {
-  public static class CockroachBootstrapperConfigurationExtensions
-  {
 
     /// <summary>
     /// Tells the bootstrapper to use PostgreSQL as the job storage with the default storage options.
@@ -34,7 +34,7 @@ namespace Hangfire.Cockroach
     /// <returns><see cref="IGlobalConfiguration{T}"/> instance whose generic type argument is <see cref="CockroachStorage"/>.</returns>
     public static IGlobalConfiguration<CockroachStorage> UseCockroachStorage(this IGlobalConfiguration configuration, Action<CockroachBootstrapperOptions> configure)
     {
-      return configuration.UseCockroachStorage(configure, new CockroachStorageOptions());
+        return configuration.UseCockroachStorage(configure, new CockroachStorageOptions());
     }
 
     /// <summary>
@@ -47,22 +47,22 @@ namespace Hangfire.Cockroach
     /// <exception cref="InvalidOperationException">Throws if <see cref="IConnectionFactory"/> is not set up in the <paramref name="configure"/> action.</exception>
     public static IGlobalConfiguration<CockroachStorage> UseCockroachStorage(this IGlobalConfiguration configuration, Action<CockroachBootstrapperOptions> configure, CockroachStorageOptions options)
     {
-      if (options == null)
-      {
-        throw new ArgumentNullException(nameof(options));
-      }
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
 
-      CockroachBootstrapperOptions bootstrapperOptions = new(options);
-      configure(bootstrapperOptions);
+        CockroachBootstrapperOptions bootstrapperOptions = new(options);
+        configure(bootstrapperOptions);
 
-      IConnectionFactory connectionFactory = bootstrapperOptions.ConnectionFactory;
-      if (connectionFactory == null)
-      {
-        throw new InvalidOperationException("Connection factory is not specified");
-      }
+        var connectionFactory = bootstrapperOptions.ConnectionFactory;
+        
+        if (connectionFactory == null)
+        {
+            throw new InvalidOperationException("Connection factory is not specified");
+        }
 
-      CockroachStorage storage = new(connectionFactory, options);
-      return configuration.UseStorage(storage);
+        CockroachStorage storage = new(connectionFactory, options);
+        return configuration.UseStorage(storage);
     }
-  }
 }

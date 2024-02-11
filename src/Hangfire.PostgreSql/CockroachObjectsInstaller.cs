@@ -25,121 +25,130 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Resources;
+
 using Hangfire.Logging;
+
 using Npgsql;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public static class CockroachObjectsInstaller
 {
-  public static class CockroachObjectsInstaller
-  {
-    private static readonly ILog _logger = LogProvider.GetLogger(typeof(CockroachStorage));
+    private static readonly ILog Logger = LogProvider.GetLogger(typeof(CockroachStorage));
 
     public static void Install(NpgsqlConnection connection, string schemaName = "hangfire")
     {
-      if (connection == null)
-      {
-        throw new ArgumentNullException(nameof(connection));
-      }
-
-      _logger.Info("Start installing Hangfire SQL objects...");
-
-      // starts with version 3 to keep in check with Hangfire SqlServer, but I couldn't keep up with that idea after all;
-      int version = 3;
-      int previousVersion = 1;
-      do
-      {
-        try
+        if (connection == null)
         {
-          string script;
-          try
-          {
-            script = GetStringResource(typeof(CockroachObjectsInstaller).GetTypeInfo().Assembly,
-              $"Hangfire.Cockroach.Scripts.Install.v{version.ToString(CultureInfo.InvariantCulture)}.sql");
-          }
-          catch (MissingManifestResourceException)
-          {
-            break;
-          }
+            throw new ArgumentNullException(nameof(connection));
+        }
 
-          if (schemaName != "hangfire")
-          {
-            script = script.Replace("'hangfire'", $"'{schemaName}'").Replace(@"""hangfire""", $@"""{schemaName}""");
-          }
+        Logger.Info("Start installing Hangfire SQL objects...");
 
-          if (!VersionAlreadyApplied(connection, schemaName, version))
-          {
-            string commandText = $@"{script}; UPDATE ""{schemaName}"".""schema"" SET ""version"" = @Version WHERE ""version"" = @PreviousVersion";
-            using NpgsqlTransaction transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-            using NpgsqlCommand command = new(commandText, connection, transaction);
-            command.CommandTimeout = 120;
-            command.Parameters.Add(new NpgsqlParameter("Version", version));
-            command.Parameters.Add(new NpgsqlParameter("PreviousVersion", previousVersion));
+        // starts with version 21
+        var version = 21;
+        
+        var previousVersion = 1;
+       
+        do
+        {
             try
             {
-              command.ExecuteNonQuery();
-              transaction.Commit();
+                string script;
+                try
+                {
+                    script = GetStringResource(typeof(CockroachObjectsInstaller).GetTypeInfo().Assembly,
+                      $"Hangfire.Cockroach.Scripts.Install.v{version.ToString(CultureInfo.InvariantCulture)}.sql");
+                }
+                catch (MissingManifestResourceException)
+                {
+                    break;
+                }
+
+                if (schemaName != "hangfire")
+                {
+                    script = script.Replace("'hangfire'", $"'{schemaName}'").Replace(@"""hangfire""", $@"""{schemaName}""");
+                }
+
+                if (!VersionAlreadyApplied(connection, schemaName, version))
+                {
+                    var commandText = $@"{script}; UPDATE ""{schemaName}"".""schema"" SET ""version"" = @Version WHERE ""version"" = @PreviousVersion";
+                    
+                    using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+                    
+                    using NpgsqlCommand command = new(commandText, connection, transaction);
+                    command.CommandTimeout = 120;
+                    command.Parameters.Add(new NpgsqlParameter("Version", version));
+                    command.Parameters.Add(new NpgsqlParameter("PreviousVersion", previousVersion));
+                    
+                    try
+                    {
+                        command.ExecuteNonQuery();
+                        transaction.Commit();
+                    }
+                    catch (PostgresException ex)
+                    {
+                        if (ex.SqlState != "23505" || (ex.MessageText ?? "") != "version-already-applied")
+                        {
+                            throw;
+                        }
+                    }
+                }
             }
-            catch (PostgresException ex)
+            catch (Exception ex)
             {
-              if (ex.SqlState != "23505" || (ex.MessageText ?? "") != "version-already-applied")
-              {
+                if (ex.Source.Equals("Npgsql"))
+                {
+                    Logger.ErrorException("Error while executing install/upgrade", ex);
+                }
+
                 throw;
-              }
             }
-          }
-        }
-        catch (Exception ex)
-        {
-          if (ex.Source.Equals("Npgsql"))
-          {
-            _logger.ErrorException("Error while executing install/upgrade", ex);
-          }
 
-          throw;
-        }
+            previousVersion = version;
+            version++;
+        } while (true);
 
-        previousVersion = version;
-        version++;
-      } while (true);
-
-      _logger.Info("Hangfire SQL objects installed.");
+        Logger.Info("Hangfire SQL objects installed.");
     }
 
     private static bool VersionAlreadyApplied(NpgsqlConnection connection, string schemaName, int version)
     {
-      try
-      {
-        using NpgsqlCommand command = new($@"SELECT true ""VersionAlreadyApplied"" FROM ""{schemaName}"".""schema"" WHERE ""version"" >= $1", connection);
-        command.Parameters.Add(new NpgsqlParameter { Value = version });
-        object result = command.ExecuteScalar();
-        if (true.Equals(result))
+        try
         {
-          return true;
+            using var command = new NpgsqlCommand($@"SELECT true ""VersionAlreadyApplied"" FROM ""{schemaName}"".""schema"" WHERE ""version"" >= $1", connection);
+            command.Parameters.Add(new NpgsqlParameter { Value = version });
+           
+            var result = command.ExecuteScalar();
+            
+            if (true.Equals(result))
+            {
+                return true;
+            }
         }
-      }
-      catch (PostgresException ex)
-      {
-        if (ex.SqlState.Equals(PostgresErrorCodes.UndefinedTable)) //42P01: Relation (table) does not exist. So no schema table yet.
+        catch (PostgresException ex)
         {
-          return false;
+            if (ex.SqlState.Equals(PostgresErrorCodes.UndefinedTable)) //42P01: Relation (table) does not exist. So no schema table yet.
+            {
+                return false;
+            }
+
+            throw;
         }
 
-        throw;
-      }
-
-      return false;
+        return false;
     }
 
     private static string GetStringResource(Assembly assembly, string resourceName)
     {
-      using Stream stream = assembly.GetManifestResourceStream(resourceName);
-      if (stream == null)
-      {
-        throw new MissingManifestResourceException($"Requested resource `{resourceName}` was not found in the assembly `{assembly}`.");
-      }
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        
+        if (stream == null)
+        {
+            throw new MissingManifestResourceException($"Requested resource `{resourceName}` was not found in the assembly `{assembly}`.");
+        }
 
-      using StreamReader reader = new(stream);
-      return reader.ReadToEnd();
+        using StreamReader reader = new(stream);
+        return reader.ReadToEnd();
     }
-  }
 }

@@ -22,13 +22,12 @@
 using System;
 using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.Cockroach.Entities
+namespace Hangfire.Cockroach.Entities;
+
+[UsedImplicitly]
+internal sealed class JobParameter
 {
-  [UsedImplicitly]
-  internal class JobParameter
-  {
     public Guid JobId { get; set; }
     public string Name { get; set; }
     public string Value { get; set; }
-  }
 }

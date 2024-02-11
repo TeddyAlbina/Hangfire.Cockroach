@@ -22,67 +22,62 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Dapper;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+internal sealed class CockroachJobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
 {
-  internal class CockroachJobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
-  {
-    private readonly CockroachStorage _storage;
+    private readonly CockroachStorage storage;
 
     public CockroachJobQueueMonitoringApi(CockroachStorage storage)
     {
-      _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
     }
 
     public IEnumerable<string> GetQueues()
     {
-      string sqlQuery = $@"SELECT DISTINCT ""queue"" FROM ""{_storage.Options.SchemaName}"".""jobqueue""";
-      return _storage.UseConnection(null, connection => connection.Query<string>(sqlQuery).ToList());
+        var sqlQuery = $@"SELECT DISTINCT ""queue"" FROM ""{this.storage.Options.SchemaName}"".""jobqueue""";
+        return this.storage.UseConnection(null, connection => connection.Query<string>(sqlQuery).ToList());
     }
 
-    public IEnumerable<Guid> GetEnqueuedJobIds(string queue, int from, int perPage)
-    {
-      return GetQueuedOrFetchedJobIds(queue, false, from, perPage);
-    }
+    public IEnumerable<Guid> GetEnqueuedJobIds(string queue, int from, int perPage) => this.GetQueuedOrFetchedJobIds(queue, false, from, perPage);
 
-    public IEnumerable<Guid> GetFetchedJobIds(string queue, int from, int perPage)
-    {
-      return GetQueuedOrFetchedJobIds(queue, true, from, perPage);
-    }
+    public IEnumerable<Guid> GetFetchedJobIds(string queue, int from, int perPage) => this.GetQueuedOrFetchedJobIds(queue, true, from, perPage);
 
     public EnqueuedAndFetchedCountDto GetEnqueuedAndFetchedCount(string queue)
     {
-      string sqlQuery = $@"
+        var sqlQuery = $@"
         SELECT (
             SELECT COUNT(*) 
-            FROM ""{_storage.Options.SchemaName}"".""jobqueue"" 
+            FROM ""{this.storage.Options.SchemaName}"".""jobqueue"" 
             WHERE ""fetchedat"" IS NULL 
             AND ""queue"" = @Queue
         ) ""EnqueuedCount"", 
         (
           SELECT COUNT(*) 
-          FROM ""{_storage.Options.SchemaName}"".""jobqueue"" 
+          FROM ""{this.storage.Options.SchemaName}"".""jobqueue"" 
           WHERE ""fetchedat"" IS NOT NULL 
           AND ""queue"" = @Queue
         ) ""FetchedCount"";
       ";
 
-      (long enqueuedCount, long fetchedCount) = _storage.UseConnection(null, connection => 
-        connection.QuerySingle<(long EnqueuedCount, long FetchedCount)>(sqlQuery, new { Queue = queue }));
+        (var enqueuedCount, var fetchedCount) = this.storage.UseConnection(null, connection => connection.QuerySingle<(long EnqueuedCount, long FetchedCount)>(sqlQuery, new { Queue = queue }));
 
-      return new EnqueuedAndFetchedCountDto {
-        EnqueuedCount = enqueuedCount,
-        FetchedCount = fetchedCount,
-      };
+        return new EnqueuedAndFetchedCountDto
+        {
+            EnqueuedCount = enqueuedCount,
+            FetchedCount = fetchedCount,
+        };
     }
 
     private IEnumerable<Guid> GetQueuedOrFetchedJobIds(string queue, bool fetched, int from, int perPage)
     {
-      string sqlQuery = $@"
+        var sqlQuery = $@"
         SELECT j.""id"" 
-        FROM ""{_storage.Options.SchemaName}"".""jobqueue"" jq
-        LEFT JOIN ""{_storage.Options.SchemaName}"".""job"" j ON jq.""jobid"" = j.""id""
+        FROM ""{this.storage.Options.SchemaName}"".""jobqueue"" jq
+        LEFT JOIN ""{this.storage.Options.SchemaName}"".""job"" j ON jq.""jobid"" = j.""id""
         WHERE jq.""queue"" = @Queue 
         AND jq.""fetchedat"" {(fetched ? "IS NOT NULL" : "IS NULL")}
         AND j.""id"" IS NOT NULL
@@ -90,9 +85,8 @@ namespace Hangfire.Cockroach
         LIMIT @Limit OFFSET @Offset;
       ";
 
-      return _storage.UseConnection(null, connection => connection.Query<Guid>(sqlQuery,
-          new { Queue = queue, Offset = from, Limit = perPage })
-        .ToList());
+        return this.storage.UseConnection(null, connection => connection.Query<Guid>(sqlQuery,
+            new { Queue = queue, Offset = from, Limit = perPage })
+          .ToList());
     }
-  }
 }

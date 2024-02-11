@@ -21,17 +21,19 @@
 
 using System;
 using System.Threading;
+
 using Dapper;
+
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.Server;
 
-namespace Hangfire.Cockroach
-{
+namespace Hangfire.Cockroach;
+
 #pragma warning disable 618
-  internal class CountersAggregator : IServerComponent
+internal sealed class CountersAggregator : IServerComponent
 #pragma warning restore 618
-  {
+{
     // This number should be high enough to aggregate counters efficiently,
     // but low enough to not to cause large amount of row locks to be taken.
     // Lock escalation to page locks may pause the background processing.
@@ -40,70 +42,68 @@ namespace Hangfire.Cockroach
     private static readonly TimeSpan _delayBetweenPasses = TimeSpan.FromMilliseconds(500);
 
     private readonly ILog _logger = LogProvider.For<CountersAggregator>();
-    private readonly TimeSpan _interval;
-    private readonly CockroachStorage _storage;
+    private readonly TimeSpan interval;
+    private readonly CockroachStorage storage;
 
     public CountersAggregator(CockroachStorage storage, TimeSpan interval)
     {
-      _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-      _interval = interval;
+        this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        this.interval = interval;
     }
 
     public void Execute(CancellationToken cancellationToken)
     {
-      _logger.Debug("Aggregating records in 'Counter' table...");
+        this._logger.Debug("Aggregating records in 'Counter' table...");
 
-      int removedCount = 0;
-      
-      do
-      {
-        _storage.UseConnection(null, connection => {
-          removedCount = connection.Execute(GetAggregationQuery(),
-            new { now = DateTime.UtcNow, count = NumberOfRecordsInSinglePass },
-            commandTimeout: 0);
-        });
+        var removedCount = 0;
 
-        if (removedCount < NumberOfRecordsInSinglePass)
+        do
         {
-          continue;
-        }
+            this.storage.UseConnection(null, connection =>
+            {
+                removedCount = connection.Execute(this.GetAggregationQuery(), new { now = DateTime.UtcNow, count = NumberOfRecordsInSinglePass }, commandTimeout: 0);
+            });
 
-        cancellationToken.Wait(_delayBetweenPasses);
-        cancellationToken.ThrowIfCancellationRequested();
-        // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
-      } while (removedCount >= NumberOfRecordsInSinglePass);
+            if (removedCount < NumberOfRecordsInSinglePass)
+            {
+                continue;
+            }
 
-      _logger.Trace("Records from the 'Counter' table aggregated.");
+            cancellationToken.Wait(_delayBetweenPasses);
+            cancellationToken.ThrowIfCancellationRequested();
+            // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
+        } while (removedCount >= NumberOfRecordsInSinglePass);
 
-      cancellationToken.Wait(_interval);
+        this._logger.Trace("Records from the 'Counter' table aggregated.");
+
+        cancellationToken.Wait(this.interval);
     }
 
     private string GetAggregationQuery()
     {
-      string schemaName = _storage.Options.SchemaName;
-      return
-        $@"BEGIN;
+        var schemaName = this.storage.Options.SchemaName;
+        return $"""
+            BEGIN;
 
-INSERT INTO ""{schemaName}"".""aggregatedcounter"" (""key"", ""value"", ""expireat"")	
-      SELECT
-      ""key"",
-      SUM(""value""),
-      MAX(""expireat"")
-      FROM ""{schemaName}"".""counter""
-      GROUP BY
-      ""key""
-      ON CONFLICT(""key"") DO
-        UPDATE
-          SET
-      ""value"" = ""aggregatedcounter"".""value"" + EXCLUDED.""value"",
-      ""expireat"" = EXCLUDED.""expireat"";
+            INSERT INTO "{schemaName}"."aggregatedcounter" ("key", "value", "expireat")	
+            SELECT
+            "key",
+            SUM("value"),
+            MAX("expireat")
+            FROM "{schemaName}"."counter"
+            GROUP BY
+            "key"
+            ON CONFLICT("key") DO
+              UPDATE
+                SET
+            "value" = "aggregatedcounter"."value" + EXCLUDED."value",
+            "expireat" = EXCLUDED."expireat";
 
-      DELETE FROM ""{schemaName}"".""counter""
-        WHERE
-      ""key"" IN (SELECT ""key"" FROM ""{schemaName}"".""aggregatedcounter"" );
+            DELETE FROM "{schemaName}"."counter"
+              WHERE
+            "key" IN (SELECT "key" FROM "{schemaName}"."aggregatedcounter" );
 
-      COMMIT;
-      ";
+            COMMIT;
+            """;
     }
-  }
 }

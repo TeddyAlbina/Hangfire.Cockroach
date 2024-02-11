@@ -6,48 +6,50 @@ namespace Hangfire.Cockroach.Factories;
 
 public abstract class NpgsqlInstanceConnectionFactoryBase : IConnectionFactory
 {
-  private readonly CockroachStorageOptions _options;
-  [CanBeNull] private NpgsqlConnectionStringBuilder _connectionStringBuilder;
+    private readonly CockroachStorageOptions options;
+    
+    [CanBeNull] 
+    private NpgsqlConnectionStringBuilder connectionStringBuilder;
 
-  protected NpgsqlInstanceConnectionFactoryBase(CockroachStorageOptions options)
-  {
-    _options = options ?? throw new ArgumentNullException(nameof(options));
-  }
-
-  /// <summary>
-  /// Gets the connection string builder associated with the current instance.
-  /// </summary>
-  /// <exception cref="InvalidOperationException">Throws if connection string builder has not been initialized.</exception>
-  public NpgsqlConnectionStringBuilder ConnectionString =>
-    _connectionStringBuilder ?? throw new InvalidOperationException("Connection string builder has not been initialized");
-
-  protected NpgsqlConnectionStringBuilder SetupConnectionStringBuilder(string connectionString)
-  {
-    if (_connectionStringBuilder != null)
+    protected NpgsqlInstanceConnectionFactoryBase(CockroachStorageOptions options)
     {
-      return _connectionStringBuilder;
+        this.options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    try
+    /// <summary>
+    /// Gets the connection string builder associated with the current instance.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Throws if connection string builder has not been initialized.</exception>
+    public NpgsqlConnectionStringBuilder ConnectionString =>
+      this.connectionStringBuilder ?? throw new InvalidOperationException("Connection string builder has not been initialized");
+
+    protected NpgsqlConnectionStringBuilder SetupConnectionStringBuilder(string connectionString)
     {
-      NpgsqlConnectionStringBuilder builder = new(connectionString);
+        if (this.connectionStringBuilder != null)
+        {
+            return this.connectionStringBuilder;
+        }
 
-      // The connection string must not be modified when transaction enlistment is enabled, otherwise it will cause
-      // prepared transactions and probably fail when other statements (outside of hangfire) ran within the same
-      // transaction. Also see #248.
-      if (!_options.EnableTransactionScopeEnlistment && builder.Enlist)
-      {
-        throw new ArgumentException($"TransactionScope enlistment must be enabled by setting {nameof(CockroachStorageOptions)}.{nameof(CockroachStorageOptions.EnableTransactionScopeEnlistment)} to `true`.");
-      }
+        try
+        {
+            NpgsqlConnectionStringBuilder builder = new(connectionString);
 
-      return _connectionStringBuilder = builder;
+            // The connection string must not be modified when transaction enlistment is enabled, otherwise it will cause
+            // prepared transactions and probably fail when other statements (outside of hangfire) ran within the same
+            // transaction. Also see #248.
+            if (!this.options.EnableTransactionScopeEnlistment && builder.Enlist)
+            {
+                throw new ArgumentException($"TransactionScope enlistment must be enabled by setting {nameof(CockroachStorageOptions)}.{nameof(CockroachStorageOptions.EnableTransactionScopeEnlistment)} to `true`.");
+            }
+
+            return this.connectionStringBuilder = builder;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new ArgumentException($"Connection string is not valid", nameof(connectionString), ex);
+        }
     }
-    catch (ArgumentException ex)
-    {
-      throw new ArgumentException($"Connection string is not valid", nameof(connectionString), ex);
-    }
-  }
 
-  /// <inheritdoc />
-  public abstract NpgsqlConnection GetOrCreateConnection();
+    /// <inheritdoc />
+    public abstract NpgsqlConnection GetOrCreateConnection();
 }

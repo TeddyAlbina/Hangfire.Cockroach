@@ -85,6 +85,14 @@ config.UseCockroachStorage(c =>
 );
 ```
  
+### Environment variables for unit testing
+
+|  | Description |
+|--|--|
+|Hangfire_Cockroach_DatabaseName  | Database name |
+| Hangfire_Cockroach_SchemaName | Schema name |
+| Hangfire_Cockroach_ConnectionStringTemplate | Connection string  |
+
 
 ### License
 

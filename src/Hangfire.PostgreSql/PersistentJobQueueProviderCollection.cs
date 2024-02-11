@@ -23,69 +23,68 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Hangfire.Cockroach
-{
-  public class PersistentJobQueueProviderCollection : IEnumerable<IPersistentJobQueueProvider>
-  {
-    private readonly IPersistentJobQueueProvider _defaultProvider;
+namespace Hangfire.Cockroach;
 
-    private readonly List<IPersistentJobQueueProvider> _providers = new();
+public sealed class PersistentJobQueueProviderCollection : IEnumerable<IPersistentJobQueueProvider>
+{
+    private readonly IPersistentJobQueueProvider defaultProvider;
+
+    private readonly List<IPersistentJobQueueProvider> providers = [];
 
     private readonly Dictionary<string, IPersistentJobQueueProvider> _providersByQueue = new(StringComparer.OrdinalIgnoreCase);
 
     public PersistentJobQueueProviderCollection(IPersistentJobQueueProvider defaultProvider)
     {
-      _defaultProvider = defaultProvider ?? throw new ArgumentNullException(nameof(defaultProvider));
-      _providers.Add(_defaultProvider);
+        this.defaultProvider = defaultProvider ?? throw new ArgumentNullException(nameof(defaultProvider));
+        this.providers.Add(this.defaultProvider);
     }
 
     public IEnumerator<IPersistentJobQueueProvider> GetEnumerator()
     {
-      return _providers.GetEnumerator();
+        return this.providers.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-      return GetEnumerator();
+        return this.GetEnumerator();
     }
 
     public void Add(IPersistentJobQueueProvider provider, IEnumerable<string> queues)
     {
-      if (provider == null)
-      {
-        throw new ArgumentNullException(nameof(provider));
-      }
+        if (provider == null)
+        {
+            throw new ArgumentNullException(nameof(provider));
+        }
 
-      if (queues == null)
-      {
-        throw new ArgumentNullException(nameof(queues));
-      }
+        if (queues == null)
+        {
+            throw new ArgumentNullException(nameof(queues));
+        }
 
-      _providers.Add(provider);
+        this.providers.Add(provider);
 
-      foreach (string queue in queues)
-      {
-        _providersByQueue.Add(queue, provider);
-      }
+        foreach (var queue in queues)
+        {
+            this._providersByQueue.Add(queue, provider);
+        }
     }
 
     public IPersistentJobQueueProvider GetProvider(string queue)
     {
-      return _providersByQueue.TryGetValue(queue, out IPersistentJobQueueProvider provider)
-        ? provider
-        : _defaultProvider;
+        return this._providersByQueue.TryGetValue(queue, out var provider)
+          ? provider
+          : this.defaultProvider;
     }
 
     public void Remove(string queue)
     {
-      if (!_providersByQueue.ContainsKey(queue))
-      {
-        return;
-      }
+        if (!this._providersByQueue.ContainsKey(queue))
+        {
+            return;
+        }
 
-      IPersistentJobQueueProvider provider = _providersByQueue[queue];
-      _providersByQueue.Remove(queue);
-      _providers.Remove(provider);
+        var provider = this._providersByQueue[queue];
+        this._providersByQueue.Remove(queue);
+        this.providers.Remove(provider);
     }
-  }
 }

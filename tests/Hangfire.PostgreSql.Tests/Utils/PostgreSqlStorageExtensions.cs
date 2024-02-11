@@ -1,10 +1,10 @@
 ﻿namespace Hangfire.Cockroach.Tests.Utils
 {
-  internal static class PostgreSqlStorageExtensions
-  {
-    public static CockroachConnection GetStorageConnection(this CockroachStorage storage)
+    internal static class PostgreSqlStorageExtensions
     {
-      return storage.GetConnection() as CockroachConnection;
+        public static CockroachConnection GetStorageConnection(this CockroachStorage storage)
+        {
+            return storage.GetConnection() as CockroachConnection;
+        }
     }
-  }
 }

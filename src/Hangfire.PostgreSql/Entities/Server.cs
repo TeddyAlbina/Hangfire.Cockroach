@@ -22,13 +22,12 @@
 using System;
 using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.Cockroach.Entities
+namespace Hangfire.Cockroach.Entities;
+
+[UsedImplicitly]
+internal sealed class Server
 {
-  [UsedImplicitly]
-  internal class Server
-  {
     public Guid Id { get; set; }
     public string Data { get; set; }
     public DateTime LastHeartbeat { get; set; }
-  }
 }

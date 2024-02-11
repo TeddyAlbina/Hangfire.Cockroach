@@ -21,11 +21,11 @@
 
 using System;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+[Serializable]
+public class CockroachDistributedLockException : Exception
 {
-  [Serializable]
-  public class CockroachDistributedLockException : Exception
-  {
     public CockroachDistributedLockException(string message) : base(message)
     {
     }
@@ -33,5 +33,4 @@ namespace Hangfire.Cockroach
     public CockroachDistributedLockException(string message, Exception innerException) : base(message, innerException)
     {
     }
-  }
 }

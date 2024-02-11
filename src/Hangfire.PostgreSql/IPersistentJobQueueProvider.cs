@@ -19,11 +19,10 @@
 //   
 //    Special thanks goes to him.
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public interface IPersistentJobQueueProvider
 {
-  public interface IPersistentJobQueueProvider
-  {
     IPersistentJobQueue GetJobQueue();
     IPersistentJobQueueMonitoringApi GetJobQueueMonitoringApi();
-  }
 }

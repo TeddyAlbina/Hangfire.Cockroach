@@ -20,29 +20,26 @@
 //    Special thanks goes to him.
 
 using System;
+
 using Dapper;
+
 using Hangfire.Storage;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public sealed class CockroachFetchedJob : IFetchedJob
 {
-  public class CockroachFetchedJob : IFetchedJob
-  {
-    private readonly CockroachStorage _storage;
-    private bool _disposed;
-    private bool _removedFromQueue;
-    private bool _requeued;
+    private readonly CockroachStorage storage;
+    private bool disposed;
+    private bool removedFromQueue;
+    private bool requeued;
 
-    public CockroachFetchedJob(
-      CockroachStorage storage,
-      Guid id,
-      string jobId,
-      string queue)
+    public CockroachFetchedJob(CockroachStorage storage, Guid id, string jobId, string queue)
     {
-      _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-
-      Id = id;
-      JobId = jobId ?? throw new ArgumentNullException(nameof(jobId));
-      Queue = queue ?? throw new ArgumentNullException(nameof(queue));
+        this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        this.Id = id;
+        this.JobId = jobId ?? throw new ArgumentNullException(nameof(jobId));
+        this.Queue = queue ?? throw new ArgumentNullException(nameof(queue));
     }
 
     public Guid Id { get; }
@@ -51,39 +48,38 @@ namespace Hangfire.Cockroach
 
     public void RemoveFromQueue()
     {
-      _storage.UseConnection(null, connection => connection.Execute($@"
-        DELETE FROM ""{_storage.Options.SchemaName}"".""jobqueue"" WHERE ""id"" = @Id;
+        this.storage.UseConnection(null, connection => connection.Execute($@"
+        DELETE FROM ""{this.storage.Options.SchemaName}"".""jobqueue"" WHERE ""id"" = @Id;
       ",
-        new { Id }));
+          new { this.Id }));
 
-      _removedFromQueue = true;
+        this.removedFromQueue = true;
     }
 
     public void Requeue()
     {
-      _storage.UseConnection(null, connection => connection.Execute($@"
-        UPDATE ""{_storage.Options.SchemaName}"".""jobqueue"" 
+        this.storage.UseConnection(null, connection => connection.Execute($@"
+        UPDATE ""{this.storage.Options.SchemaName}"".""jobqueue"" 
         SET ""fetchedat"" = NULL 
         WHERE ""id"" = @Id;
       ",
-      new { Id }));
+        new { this.Id }));
 
-      _requeued = true;
+        this.requeued = true;
     }
 
     public void Dispose()
     {
-      if (_disposed)
-      {
-        return;
-      }
+        if (this.disposed)
+        {
+            return;
+        }
 
-      if (!_removedFromQueue && !_requeued)
-      {
-        Requeue();
-      }
+        if (!this.removedFromQueue && !this.requeued)
+        {
+            this.Requeue();
+        }
 
-      _disposed = true;
+        this.disposed = true;
     }
-  }
 }

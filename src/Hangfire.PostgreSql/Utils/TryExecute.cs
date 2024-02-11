@@ -22,33 +22,28 @@
 using System;
 // ReSharper disable ArrangeDefaultValueWhenTypeNotEvident
 
-namespace Hangfire.Cockroach.Utils
+namespace Hangfire.Cockroach.Utils;
+
+public static class Utils
 {
-  public static class Utils
-  {
-    public static bool TryExecute<T>(
-      Func<T> func,
-      out T result,
-      Func<Exception, bool> swallowException = default,
-      int? tryCount = default)
+    public static bool TryExecute<T>(Func<T> func, out T result, Func<Exception, bool> swallowException = default, int? tryCount = default)
     {
-      while (tryCount == default || tryCount-- > 0)
-      {
-        try
+        while (tryCount == default || tryCount-- > 0)
         {
-          result = func();
-          return true;
+            try
+            {
+                result = func();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (swallowException != null && !swallowException(ex))
+                {
+                    throw;
+                }
+            }
         }
-        catch (Exception ex)
-        {
-          if (swallowException != null && !swallowException(ex))
-          {
-            throw;
-          }
-        }
-      }
-      result = default;
-      return false;
+        result = default;
+        return false;
     }
-  }
 }

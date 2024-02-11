@@ -1,45 +1,48 @@
 ﻿using System.Threading;
+
 using Hangfire.Cockroach.Tests.Entities;
 using Hangfire.Cockroach.Tests.Utils;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
+
 using Xunit;
 
 namespace Hangfire.Cockroach.Tests;
 
 public class FirstClassQueueFeatureSupportTests
 {
-  public FirstClassQueueFeatureSupportTests()
-  {
-    JobStorage.Current = new CockroachStorage(ConnectionUtils.GetDefaultConnectionFactory());
-  }
+    public FirstClassQueueFeatureSupportTests()
+    {
+        JobStorage.Current = new CockroachStorage(ConnectionUtils.GetDefaultConnectionFactory());
+    }
 
-  [Fact]
-  public void HasFlag_ShouldReturnTrue_ForJobQueueProperty()
-  {
-    bool supportJobQueueProperty = JobStorage.Current.HasFeature(JobStorageFeatures.JobQueueProperty);
-    Assert.True(supportJobQueueProperty);
-  }
+    [Fact]
+    public void HasFlag_ShouldReturnTrue_ForJobQueueProperty()
+    {
+        bool supportJobQueueProperty = JobStorage.Current.HasFeature(JobStorageFeatures.JobQueueProperty);
+        Assert.True(supportJobQueueProperty);
+    }
 
-  [Fact]
-  [CleanDatabase]
-  public void EnqueueJobWithSpecificQueue_ShouldEnqueueCorrectlyAndJobMustBeProcessedInThatQueue()
-  {
-    BackgroundJob.Enqueue<TestJobs>("critical", job => job.Run("critical"));
-    BackgroundJob.Enqueue<TestJobs>("offline", job => job.Run("offline"));
+    [Fact]
+    [CleanDatabase]
+    public void EnqueueJobWithSpecificQueue_ShouldEnqueueCorrectlyAndJobMustBeProcessedInThatQueue()
+    {
+        BackgroundJob.Enqueue<TestJobs>("critical", job => job.Run("critical"));
+        BackgroundJob.Enqueue<TestJobs>("offline", job => job.Run("offline"));
 
-    BackgroundJobServer unused = new(new BackgroundJobServerOptions() {
-      Queues = ["critical"],
-    });
+        BackgroundJobServer unused = new(new BackgroundJobServerOptions()
+        {
+            Queues = ["critical"],
+        });
 
-    Thread.Sleep(200);
+        Thread.Sleep(200);
 
-    IMonitoringApi monitoringApi = JobStorage.Current.GetMonitoringApi();
+        IMonitoringApi monitoringApi = JobStorage.Current.GetMonitoringApi();
 
-    JobList<EnqueuedJobDto> jobsInCriticalQueue = monitoringApi.EnqueuedJobs("critical", 0, 10);
-    JobList<EnqueuedJobDto> jobsInOfflineQueue = monitoringApi.EnqueuedJobs("offline", 0, 10);
+        JobList<EnqueuedJobDto> jobsInCriticalQueue = monitoringApi.EnqueuedJobs("critical", 0, 10);
+        JobList<EnqueuedJobDto> jobsInOfflineQueue = monitoringApi.EnqueuedJobs("offline", 0, 10);
 
-    Assert.Empty(jobsInCriticalQueue);   //Job from 'critical' queue must be processed by the server 
-    Assert.NotEmpty(jobsInOfflineQueue); //Job from 'offline' queue must be left untouched because no server is processing it
-  }
+        Assert.Empty(jobsInCriticalQueue);   //Job from 'critical' queue must be processed by the server 
+        Assert.NotEmpty(jobsInOfflineQueue); //Job from 'offline' queue must be left untouched because no server is processing it
+    }
 }

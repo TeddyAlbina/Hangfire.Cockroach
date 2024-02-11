@@ -22,15 +22,14 @@
 using System;
 using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.Cockroach.Entities
+namespace Hangfire.Cockroach.Entities;
+
+[UsedImplicitly]
+internal sealed class SqlHash
 {
-  [UsedImplicitly]
-  internal class SqlHash
-  {
     public Guid Id { get; set; }
     public string Key { get; set; }
     public string Field { get; set; }
     public string Value { get; set; }
     public DateTime? ExpireAt { get; set; }
-  }
 }

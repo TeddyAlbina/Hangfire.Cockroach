@@ -2,14 +2,14 @@
 
 namespace Hangfire.Cockroach.Tests.Utils
 {
-  public class DefaultConnectionFactory : IConnectionFactory
-  {
-    /// <summary>
-    /// Get or create NpgsqlConnection
-    /// </summary>
-    public NpgsqlConnection GetOrCreateConnection()
+    public class DefaultConnectionFactory : IConnectionFactory
     {
-      return ConnectionUtils.CreateConnection();
+        /// <summary>
+        /// Get or create NpgsqlConnection
+        /// </summary>
+        public NpgsqlConnection GetOrCreateConnection()
+        {
+            return ConnectionUtils.CreateConnection();
+        }
     }
-  }
 }

@@ -21,16 +21,15 @@
 
 using Npgsql;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+/// <summary>
+/// Connection factory for creating <see cref="NpgsqlConnection"/> at runtime. 
+/// </summary>
+public interface IConnectionFactory
 {
-  /// <summary>
-  /// Connection factory for creating <see cref="NpgsqlConnection"/> at runtime. 
-  /// </summary>
-  public interface IConnectionFactory
-  {
     /// <summary>
     /// Get or create <see cref="NpgsqlConnection"/>.
     /// </summary>
     NpgsqlConnection GetOrCreateConnection();
-  }
 }

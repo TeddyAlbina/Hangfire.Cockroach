@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "This is a test project, underscores in test names are allowed", Scope = "module")]
+[assembly: SuppressMessage("Style", "IDE0009:Member access should be qualified.")]

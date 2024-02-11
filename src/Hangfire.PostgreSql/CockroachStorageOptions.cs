@@ -21,89 +21,95 @@
 
 using System;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public sealed class CockroachStorageOptions
 {
-  public class CockroachStorageOptions
-  {
     private static readonly TimeSpan _minimumQueuePollInterval = TimeSpan.FromMilliseconds(50);
 
-    private int _deleteExpiredBatchSize;
-    private TimeSpan _distributedLockTimeout;
-    private TimeSpan _invisibilityTimeout;
-    private TimeSpan _jobExpirationCheckInterval;
-    private TimeSpan _queuePollInterval;
-    private TimeSpan _transactionSerializationTimeout;
-    private TimeSpan _countersAggregateInterval;
+    private int deleteExpiredBatchSize;
+    private TimeSpan distributedLockTimeout;
+    private TimeSpan invisibilityTimeout;
+    private TimeSpan jobExpirationCheckInterval;
+    private TimeSpan queuePollInterval;
+    private TimeSpan transactionSerializationTimeout;
+    private TimeSpan countersAggregateInterval;
 
     public CockroachStorageOptions()
     {
-      QueuePollInterval = TimeSpan.FromSeconds(15);
-      InvisibilityTimeout = TimeSpan.FromMinutes(30);
-      DistributedLockTimeout = TimeSpan.FromMinutes(10);
-      TransactionSynchronisationTimeout = TimeSpan.FromMilliseconds(500);
-      JobExpirationCheckInterval = TimeSpan.FromHours(1);
-      CountersAggregateInterval = TimeSpan.FromMinutes(5);
-      SchemaName = "hangfire";
-      AllowUnsafeValues = false;
-      UseNativeDatabaseTransactions = true;
-      PrepareSchemaIfNecessary = true;
-      EnableTransactionScopeEnlistment = true;
-      DeleteExpiredBatchSize = 1000;
+        this.QueuePollInterval = TimeSpan.FromSeconds(15);
+        this.InvisibilityTimeout = TimeSpan.FromMinutes(30);
+        this.DistributedLockTimeout = TimeSpan.FromMinutes(10);
+        this.TransactionSynchronisationTimeout = TimeSpan.FromMilliseconds(500);
+        this.JobExpirationCheckInterval = TimeSpan.FromHours(1);
+        this.CountersAggregateInterval = TimeSpan.FromMinutes(5);
+        this.SchemaName = "hangfire";
+        this.AllowUnsafeValues = false;
+        this.UseNativeDatabaseTransactions = true;
+        this.PrepareSchemaIfNecessary = true;
+        this.EnableTransactionScopeEnlistment = true;
+        this.DeleteExpiredBatchSize = 1000;
     }
 
     public TimeSpan QueuePollInterval
     {
-      get => _queuePollInterval;
-      set {
-        ThrowIfValueIsLowerThan(_minimumQueuePollInterval, value, nameof(QueuePollInterval));
-        _queuePollInterval = value;
-      }
+        get => this.queuePollInterval;
+        set
+        {
+            this.ThrowIfValueIsLowerThan(_minimumQueuePollInterval, value, nameof(this.QueuePollInterval));
+            this.queuePollInterval = value;
+        }
     }
 
     public TimeSpan InvisibilityTimeout
     {
-      get => _invisibilityTimeout;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(InvisibilityTimeout));
-        _invisibilityTimeout = value;
-      }
+        get => this.invisibilityTimeout;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.InvisibilityTimeout));
+            this.invisibilityTimeout = value;
+        }
     }
 
     public TimeSpan DistributedLockTimeout
     {
-      get => _distributedLockTimeout;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(DistributedLockTimeout));
-        _distributedLockTimeout = value;
-      }
+        get => this.distributedLockTimeout;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.DistributedLockTimeout));
+            this.distributedLockTimeout = value;
+        }
     }
 
     // ReSharper disable once IdentifierTypo
     public TimeSpan TransactionSynchronisationTimeout
     {
-      get => _transactionSerializationTimeout;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(TransactionSynchronisationTimeout));
-        _transactionSerializationTimeout = value;
-      }
+        get => this.transactionSerializationTimeout;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.TransactionSynchronisationTimeout));
+            this.transactionSerializationTimeout = value;
+        }
     }
 
     public TimeSpan JobExpirationCheckInterval
     {
-      get => _jobExpirationCheckInterval;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(JobExpirationCheckInterval));
-        _jobExpirationCheckInterval = value;
-      }
+        get => this.jobExpirationCheckInterval;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.JobExpirationCheckInterval));
+            this.jobExpirationCheckInterval = value;
+        }
     }
 
     public TimeSpan CountersAggregateInterval
     {
-      get => _countersAggregateInterval;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(CountersAggregateInterval));
-        _countersAggregateInterval = value;
-      }
+        get => this.countersAggregateInterval;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.CountersAggregateInterval));
+            this.countersAggregateInterval = value;
+        }
     }
 
     /// <summary>
@@ -111,11 +117,12 @@ namespace Hangfire.Cockroach
     /// </summary>
     public int DeleteExpiredBatchSize
     {
-      get => _deleteExpiredBatchSize;
-      set {
-        ThrowIfValueIsNotPositive(value, nameof(DeleteExpiredBatchSize));
-        _deleteExpiredBatchSize = value;
-      }
+        get => this.deleteExpiredBatchSize;
+        set
+        {
+            ThrowIfValueIsNotPositive(value, nameof(this.DeleteExpiredBatchSize));
+            this.deleteExpiredBatchSize = value;
+        }
     }
 
     public bool AllowUnsafeValues { get; set; }
@@ -123,44 +130,43 @@ namespace Hangfire.Cockroach
     public bool PrepareSchemaIfNecessary { get; set; }
     public string SchemaName { get; set; }
     public bool EnableTransactionScopeEnlistment { get; set; }
-    public bool EnableLongPolling { get; set; } 
+    public bool EnableLongPolling { get; set; }
 
     private static void ThrowIfValueIsNotPositive(TimeSpan value, string fieldName)
     {
-      string message = $"The {fieldName} property value should be positive. Given: {value}.";
+        var message = $"The {fieldName} property value should be positive. Given: {value}.";
 
-      if (value == TimeSpan.Zero)
-      {
-        throw new ArgumentException(message, nameof(value));
-      }
+        if (value == TimeSpan.Zero)
+        {
+            throw new ArgumentException(message, nameof(value));
+        }
 
-      if (value != value.Duration())
-      {
-        throw new ArgumentException(message, nameof(value));
-      }
+        if (value != value.Duration())
+        {
+            throw new ArgumentException(message, nameof(value));
+        }
     }
 
     private void ThrowIfValueIsLowerThan(TimeSpan minValue, TimeSpan value, string fieldName)
     {
-      if (!AllowUnsafeValues)
-      {
-        string message = $"The {fieldName} property value seems to be too low ({value}, lower than suggested minimum of {minValue}). Consider increasing it. If you really need to have such a low value, please set {nameof(CockroachStorageOptions)}.{nameof(AllowUnsafeValues)} to true.";
-
-        if (value < minValue)
+        if (!this.AllowUnsafeValues)
         {
-          throw new ArgumentException(message, nameof(value));
-        }
-      }
+            var message = $"The {fieldName} property value seems to be too low ({value}, lower than suggested minimum of {minValue}). Consider increasing it. If you really need to have such a low value, please set {nameof(CockroachStorageOptions)}.{nameof(this.AllowUnsafeValues)} to true.";
 
-      ThrowIfValueIsNotPositive(value, fieldName);
+            if (value < minValue)
+            {
+                throw new ArgumentException(message, nameof(value));
+            }
+        }
+
+        ThrowIfValueIsNotPositive(value, fieldName);
     }
 
     private static void ThrowIfValueIsNotPositive(int value, string fieldName)
     {
-      if (value <= 0)
-      {
-        throw new ArgumentException($"The {fieldName} property value should be positive. Given: {value}.");
-      }
+        if (value <= 0)
+        {
+            throw new ArgumentException($"The {fieldName} property value should be positive. Given: {value}.");
+        }
     }
-  }
 }

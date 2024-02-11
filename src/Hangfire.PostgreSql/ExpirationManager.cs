@@ -23,35 +23,37 @@ using System;
 using System.Data;
 using System.Globalization;
 using System.Threading;
+
 using Dapper;
+
 using Hangfire.Logging;
 using Hangfire.Server;
 using Hangfire.Storage;
 
-namespace Hangfire.Cockroach
-{
+namespace Hangfire.Cockroach;
+
 #pragma warning disable CS0618
-  internal class ExpirationManager : IBackgroundProcess, IServerComponent
+internal sealed class ExpirationManager : IBackgroundProcess, IServerComponent
 #pragma warning restore CS0618
-  {
+{
     private const string DistributedLockKey = "locks:expirationmanager";
 
-    private static readonly TimeSpan _defaultLockTimeout = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan _delayBetweenPasses = TimeSpan.FromSeconds(1);
-    private static readonly ILog _logger = LogProvider.GetLogger(typeof(ExpirationManager));
+    private static readonly TimeSpan defaultLockTimeout = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan delayBetweenPasses = TimeSpan.FromSeconds(1);
+    private static readonly ILog Logger = LogProvider.GetLogger(typeof(ExpirationManager));
 
-    private static readonly string[] _processedCounters = {
-      "stats:succeeded",
-      "stats:deleted",
-    };
-    private static readonly string[] _processedTables = {
-      "aggregatedcounter",
-      "counter",
-      "job",
-      "list",
-      "set",
-      "hash",
-    };
+    private static readonly string[] processedCounters = [
+        "stats:succeeded",
+        "stats:deleted",
+    ];
+    private static readonly string[] processedTables = [
+        "aggregatedcounter",
+        "counter",
+        "job",
+        "list",
+        "set",
+        "hash",
+    ];
 
     private readonly TimeSpan _checkInterval;
     private readonly CockroachStorage _storage;
@@ -61,76 +63,79 @@ namespace Hangfire.Cockroach
 
     public ExpirationManager(CockroachStorage storage, TimeSpan checkInterval)
     {
-      _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-      _checkInterval = checkInterval;
+        this._storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        this._checkInterval = checkInterval;
     }
 
-    public void Execute(BackgroundProcessContext context)
-    {
-      Execute(context.StoppingToken);
-    }
+    public void Execute(BackgroundProcessContext context) => this.Execute(context.StoppingToken);
 
     public void Execute(CancellationToken cancellationToken)
     {
-      foreach (string table in _processedTables)
-      {
-        _logger.DebugFormat("Removing outdated records from table '{0}'...", table);
+        foreach (var table in processedTables)
+        {
+            Logger.DebugFormat("Removing outdated records from table '{0}'...", table);
 
-        UseConnectionDistributedLock(_storage, connection => {
-          using IDbTransaction transaction = connection.BeginTransaction();
-          int removedCount;
-          do
-          {
-            removedCount = connection.Execute($@"
-                DELETE FROM ""{_storage.Options.SchemaName}"".""{table}"" 
-                WHERE ""id"" IN (
-                    SELECT ""id"" 
-                    FROM ""{_storage.Options.SchemaName}"".""{table}"" 
-                    WHERE ""expireat"" < NOW() 
-                    LIMIT {_storage.Options.DeleteExpiredBatchSize.ToString(CultureInfo.InvariantCulture)}
-                )", transaction: transaction);
-
-            if (removedCount <= 0)
+            this.UseConnectionDistributedLock(this._storage, connection =>
             {
-              continue;
-            }
+                using var transaction = connection.BeginTransaction();
+                
+                int removedCount;
+                do
+                {
+                    removedCount = connection.Execute($@"
+                        DELETE FROM ""{this._storage.Options.SchemaName}"".""{table}"" 
+                        WHERE ""id"" IN (
+                            SELECT ""id"" 
+                            FROM ""{this._storage.Options.SchemaName}"".""{table}"" 
+                            WHERE ""expireat"" < NOW() 
+                            LIMIT {this._storage.Options.DeleteExpiredBatchSize.ToString(CultureInfo.InvariantCulture)}
+                        )", transaction: transaction);
 
-            _logger.InfoFormat("Removed {0} outdated record(s) from '{1}' table.", removedCount, table);
+                    if (removedCount <= 0)
+                    {
+                        continue;
+                    }
 
-            cancellationToken.WaitHandle.WaitOne(_delayBetweenPasses);
-            cancellationToken.ThrowIfCancellationRequested();
-          }
-          while (removedCount != 0);
+                    Logger.InfoFormat("Removed {0} outdated record(s) from '{1}' table.", removedCount, table);
 
-          transaction.Commit();
-        });
-      }
+                    cancellationToken.WaitHandle.WaitOne(delayBetweenPasses);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                while (removedCount != 0);
 
-      AggregateCounters(cancellationToken);
-      cancellationToken.WaitHandle.WaitOne(_checkInterval);
+                transaction.Commit();
+            });
+        }
+
+        this.AggregateCounters(cancellationToken);
+        
+        cancellationToken.WaitHandle.WaitOne(this._checkInterval);
     }
 
     public override string ToString()
     {
-      return "SQL Records Expiration Manager";
+        return "SQL Records Expiration Manager";
     }
 
     private void AggregateCounters(CancellationToken cancellationToken)
     {
-      foreach (string processedCounter in _processedCounters)
-      {
-        AggregateCounter(processedCounter);
-        cancellationToken.ThrowIfCancellationRequested();
-      }
+        foreach (var processedCounter in processedCounters)
+        {
+            this.AggregateCounter(processedCounter);
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
     }
 
     private void AggregateCounter(string counterName)
     {
-      UseConnectionDistributedLock(_storage, connection => {
-        using IDbTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        string aggregateQuery = $@"
+        this.UseConnectionDistributedLock(this._storage, connection =>
+        {
+            using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+            var aggregateQuery = $@"
             WITH ""counters"" AS (
-              DELETE FROM ""{_storage.Options.SchemaName}"".""counter""
+              DELETE FROM ""{this._storage.Options.SchemaName}"".""counter""
               WHERE ""key"" = @Key
               AND ""expireat"" IS NULL
               RETURNING *
@@ -139,43 +144,45 @@ namespace Hangfire.Cockroach
             SELECT SUM(""value"") FROM ""counters"";
           ";
 
-        long aggregatedValue = connection.ExecuteScalar<long>(aggregateQuery, new { Key = counterName }, transaction);
-        transaction.Commit();
+            var aggregatedValue = connection.ExecuteScalar<long>(aggregateQuery, new { Key = counterName }, transaction);
+            
+            transaction.Commit();
 
-        if (aggregatedValue > 0)
-        {
-          string insertQuery = $@"INSERT INTO ""{_storage.Options.SchemaName}"".""counter""(""key"", ""value"") VALUES (@Key, @Value);";
-          connection.Execute(insertQuery, new { Key = counterName, Value = aggregatedValue });
-        }
-      });
+            if (aggregatedValue > 0)
+            {
+                var insertQuery = $@"INSERT INTO ""{this._storage.Options.SchemaName}"".""counter""(""key"", ""value"") VALUES (@Key, @Value);";
+                
+                connection.Execute(insertQuery, new { Key = counterName, Value = aggregatedValue });
+            }
+        });
     }
 
     private void UseConnectionDistributedLock(CockroachStorage storage, Action<IDbConnection> action)
     {
-      try
-      {
-        storage.UseConnection(null, connection => {
-          CockroachDistributedLock.Acquire(connection, DistributedLockKey, _defaultLockTimeout, _storage.Options);
+        try
+        {
+            storage.UseConnection(null, connection =>
+            {
+                CockroachDistributedLock.Acquire(connection, DistributedLockKey, defaultLockTimeout, this._storage.Options);
 
-          try
-          {
-            action(connection);
-          }
-          finally
-          {
-            CockroachDistributedLock.Release(connection, DistributedLockKey, _storage.Options);
-          }
-        });
-      }
-      catch (DistributedLockTimeoutException e) when (e.Resource == DistributedLockKey)
-      {
-        // DistributedLockTimeoutException here doesn't mean that outdated records weren't removed.
-        // It just means another Hangfire server did this work.
-        _logger.Log(LogLevel.Debug,
-          () =>
-            $@"An exception was thrown during acquiring distributed lock on the {DistributedLockKey} resource within {_defaultLockTimeout.TotalSeconds} seconds. Outdated records were not removed. It will be retried in {_checkInterval.TotalSeconds} seconds.",
-          e);
-      }
+                try
+                {
+                    action(connection);
+                }
+                finally
+                {
+                    CockroachDistributedLock.Release(connection, DistributedLockKey, this._storage.Options);
+                }
+            });
+        }
+        catch (DistributedLockTimeoutException e) when (e.Resource == DistributedLockKey)
+        {
+            // DistributedLockTimeoutException here doesn't mean that outdated records weren't removed.
+            // It just means another Hangfire server did this work.
+            Logger.Log(LogLevel.Debug,
+              () =>
+                $@"An exception was thrown during acquiring distributed lock on the {DistributedLockKey} resource within {defaultLockTimeout.TotalSeconds} seconds. Outdated records were not removed. It will be retried in {this._checkInterval.TotalSeconds} seconds.",
+              e);
+        }
     }
-  }
 }

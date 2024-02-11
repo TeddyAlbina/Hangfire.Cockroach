@@ -1,4 +1,4 @@
-// This file is part of Hangfire.PostgreSql.
+﻿// This file is part of Hangfire.PostgreSql.
 // Copyright © 2014 Frank Hommers <http://hmm.rs/Hangfire.PostgreSql>.
 // 
 // Hangfire.PostgreSql is free software: you can redistribute it and/or modify
@@ -23,11 +23,10 @@ using System.Data;
 using System.Threading;
 using Hangfire.Storage;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public interface IPersistentJobQueue
 {
-  public interface IPersistentJobQueue
-  {
     IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken);
     void Enqueue(IDbConnection connection, string queue, string jobId);
-  }
 }

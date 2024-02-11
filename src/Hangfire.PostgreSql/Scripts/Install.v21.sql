@@ -1,6 +1,7 @@
 ﻿CREATE SCHEMA IF NOT EXISTS "hangfire";
 
 SET search_path = 'hangfire';
+
 --
 -- Table structure for table `Schema`
 --

@@ -22,15 +22,14 @@
 using System;
 using Hangfire.Cockroach.Properties;
 
-namespace Hangfire.Cockroach.Entities
+namespace Hangfire.Cockroach.Entities;
+
+[UsedImplicitly]
+internal sealed class SqlState
 {
-  [UsedImplicitly]
-  internal class SqlState
-  {
     public Guid JobId { get; set; }
     public string Name { get; set; }
     public string Reason { get; set; }
     public DateTime CreatedAt { get; set; }
     public string Data { get; set; }
-  }
 }

@@ -21,12 +21,11 @@
 
 using System;
 
-namespace Hangfire.Cockroach.Entities
+namespace Hangfire.Cockroach.Entities;
+
+internal sealed class ServerData
 {
-  internal class ServerData
-  {
     public int WorkerCount { get; set; }
     public string[] Queues { get; set; }
     public DateTime? StartedAt { get; set; }
-  }
 }

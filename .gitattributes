@@ -1,7 +1,8 @@
-###############################################################################
+﻿###############################################################################
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
-* text=auto
+* text=crlf
+*.sql eol=crlf
 
 ###############################################################################
 # Set default behavior for command prompt diff.
@@ -61,3 +62,9 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+*.sln text eol=crlf working-tree-encoding=UTF-8
+*.cs text eol=crlf working-tree-encoding=UTF-8
+*.csproj text eol=crlf working-tree-encoding=UTF-8
+*.yml text eol=crlf working-tree-encoding=UTF-8
+*.sql text eol=crlf working-tree-encoding=UTF-8

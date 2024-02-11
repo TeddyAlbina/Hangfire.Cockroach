@@ -24,191 +24,198 @@ using System.Data;
 using System.Diagnostics;
 using System.Threading;
 using System.Transactions;
+
 using Dapper;
+
 using Hangfire.Annotations;
 using Hangfire.Logging;
+
 using Npgsql;
+
 using IsolationLevel = System.Data.IsolationLevel;
 
-namespace Hangfire.Cockroach
+namespace Hangfire.Cockroach;
+
+public sealed class CockroachDistributedLock
 {
-  public sealed class CockroachDistributedLock
-  {
-    private static readonly ILog _logger = LogProvider.GetCurrentClassLogger();
+    private static readonly ILog logger = LogProvider.GetCurrentClassLogger();
 
     private static void Log(string resource, string message, Exception ex)
     {
-      bool isConcurrencyError = ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure };
-      _logger.Log(isConcurrencyError ? LogLevel.Trace : LogLevel.Warn, () => $"{resource}: {message}", ex);
+        var isConcurrencyError = ex is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure };
+
+        logger.Log(isConcurrencyError ? LogLevel.Trace : LogLevel.Warn, () => $"{resource}: {message}", ex);
     }
 
     internal static void Acquire(IDbConnection connection, string resource, TimeSpan timeout, CockroachStorageOptions options)
     {
-      if (connection == null)
-      {
-        throw new ArgumentNullException(nameof(connection));
-      }
+        if (connection == null)
+        {
+            throw new ArgumentNullException(nameof(connection));
+        }
 
-      if (string.IsNullOrEmpty(resource))
-      {
-        throw new ArgumentNullException(nameof(resource));
-      }
+        if (string.IsNullOrEmpty(resource))
+        {
+            throw new ArgumentNullException(nameof(resource));
+        }
 
-      if (options == null)
-      {
-        throw new ArgumentNullException(nameof(options));
-      }
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
 
-      if (connection.State != ConnectionState.Open)
-      {
-        // When we are passing a closed connection to Dapper's Execute method,
-        // it kindly opens it for us, but after command execution, it will be closed
-        // automatically, and our just-acquired application lock will immediately
-        // be released. This is not behavior we want to achieve, so let's throw an
-        // exception instead.
-        throw new InvalidOperationException("Connection must be open before acquiring a distributed lock.");
-      }
+        if (connection.State != ConnectionState.Open)
+        {
+            // When we are passing a closed connection to Dapper's Execute method,
+            // it kindly opens it for us, but after command execution, it will be closed
+            // automatically, and our just-acquired application lock will immediately
+            // be released. This is not behavior we want to achieve, so let's throw an
+            // exception instead.
+            throw new InvalidOperationException("Connection must be open before acquiring a distributed lock.");
+        }
 
-      LockHandler.Lock(resource, timeout, connection, options);
+        LockHandler.Lock(resource, timeout, connection, options);
     }
 
     internal static void Release(IDbConnection connection, string resource, CockroachStorageOptions options)
     {
-      if (connection == null)
-      {
-        throw new ArgumentNullException(nameof(connection));
-      }
+        if (connection == null)
+        {
+            throw new ArgumentNullException(nameof(connection));
+        }
 
-      if (resource == null)
-      {
-        throw new ArgumentNullException(nameof(resource));
-      }
+        if (resource == null)
+        {
+            throw new ArgumentNullException(nameof(resource));
+        }
 
-      if (options == null)
-      {
-        throw new ArgumentNullException(nameof(options));
-      }
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
 
-      if (!LockHandler.TryRemoveLock(resource, connection, options, false))
-      {
-        throw new CockroachDistributedLockException($"Could not release a lock on the resource '{resource}'. Lock does not exist.");
-      }
+        if (!LockHandler.TryRemoveLock(resource, connection, options, false))
+        {
+            throw new CockroachDistributedLockException($"Could not release a lock on the resource '{resource}'. Lock does not exist.");
+        }
     }
 
     private static class LockHandler
     {
-      public static void Lock(string resource, TimeSpan timeout, IDbConnection connection, CockroachStorageOptions options)
-      {
-        Stopwatch lockAcquiringTime = Stopwatch.StartNew();
-
-        bool tryAcquireLock = true;
-        Exception lastException = null;
-        Func<IDbConnection, string, string, bool> tryLock = options.UseNativeDatabaseTransactions
-          ? TransactionLockHandler.TryLock
-          : UpdateCountLockHandler.TryLock;
-
-        while (tryAcquireLock)
+        public static void Lock(string resource, TimeSpan timeout, IDbConnection connection, CockroachStorageOptions options)
         {
-          lastException = null;
-          if (connection.State != ConnectionState.Open)
-          {
-            connection.Open();
-          }
+            Stopwatch lockAcquiringTime = Stopwatch.StartNew();
 
-          TryRemoveLock(resource, connection, options, true);
+            var tryAcquireLock = true;
 
-          try
-          {
-            if (tryLock(connection, options.SchemaName, resource))
-            {
-              return;
-            }
-          }
-          catch (Exception ex)
-          {
-            lastException = ex;
-            Log(resource, "Failed to acquire lock", ex);
-          }
+            Exception lastException = null;
+            
+            Func<IDbConnection, string, string, bool> tryLock = options.UseNativeDatabaseTransactions
+              ? TransactionLockHandler.TryLock
+              : UpdateCountLockHandler.TryLock;
 
-          if (lockAcquiringTime.ElapsedMilliseconds > timeout.TotalMilliseconds)
-          {
-            tryAcquireLock = false;
-          }
-          else
-          {
-            int sleepDuration = (int)(timeout.TotalMilliseconds - lockAcquiringTime.ElapsedMilliseconds);
-            if (sleepDuration > 1000)
+            while (tryAcquireLock)
             {
-              sleepDuration = 1000;
+                lastException = null;
+                if (connection.State != ConnectionState.Open)
+                {
+                    connection.Open();
+                }
+
+                TryRemoveLock(resource, connection, options, true);
+
+                try
+                {
+                    if (tryLock(connection, options.SchemaName, resource))
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    Log(resource, "Failed to acquire lock", ex);
+                }
+
+                if (lockAcquiringTime.ElapsedMilliseconds > timeout.TotalMilliseconds)
+                {
+                    tryAcquireLock = false;
+                }
+                else
+                {
+                    var sleepDuration = (int)(timeout.TotalMilliseconds - lockAcquiringTime.ElapsedMilliseconds);
+                    
+                    if (sleepDuration > 1000)
+                    {
+                        sleepDuration = 1000;
+                    }
+
+                    if (sleepDuration > 0)
+                    {
+                        Thread.Sleep(sleepDuration);
+                    }
+                    else
+                    {
+                        tryAcquireLock = false;
+                    }
+                }
             }
 
-            if (sleepDuration > 0)
-            {
-              Thread.Sleep(sleepDuration);
-            }
-            else
-            {
-              tryAcquireLock = false;
-            }
-          }
+            throw new CockroachDistributedLockException($@"Could not place a lock on the resource '{resource}': Lock timeout.", lastException);
         }
 
-        throw new CockroachDistributedLockException($@"Could not place a lock on the resource '{resource}': Lock timeout.", lastException);
-      }
-
-      public static bool TryRemoveLock(string resource, IDbConnection connection, CockroachStorageOptions options, bool onlyExpired)
-      {
-        
-
-        IDbTransaction trx = null;
-        try
+        public static bool TryRemoveLock(string resource, IDbConnection connection, CockroachStorageOptions options, bool onlyExpired)
         {
-          // Non-expired locks are removed only when releasing them. Transaction is not needed in that case.
-          if (onlyExpired && options.UseNativeDatabaseTransactions)
-          {
-            trx = TransactionLockHandler.BeginTransactionIfNotPresent(connection);
-          }
+            IDbTransaction trx = null;
+            try
+            {
+                // Non-expired locks are removed only when releasing them. Transaction is not needed in that case.
+                if (onlyExpired && options.UseNativeDatabaseTransactions)
+                {
+                    trx = TransactionLockHandler.BeginTransactionIfNotPresent(connection);
+                }
 
-   
-          var sql = onlyExpired switch {
-            false => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource",
-            _ => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource AND ""acquired"" < @Timeout"
-          };
 
-          object parameters = onlyExpired switch {
-            false => new { Resource = resource },
-            _ => new { Resource = resource, Timeout = DateTime.UtcNow - options.DistributedLockTimeout },
-          };
+                var sql = onlyExpired switch
+                {
+                    false => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource",
+                    _ => $@"DELETE FROM ""{options.SchemaName}"".""lock"" WHERE ""resource"" = @Resource AND ""acquired"" < @Timeout"
+                };
 
-          int rowsAffected = connection.Execute(sql,
-            parameters, trx);
+                object parameters = onlyExpired switch
+                {
+                    false => new { Resource = resource },
+                    _ => new { Resource = resource, Timeout = DateTime.UtcNow - options.DistributedLockTimeout },
+                };
 
-          trx?.Commit();
+                var rowsAffected = connection.Execute(sql, parameters, trx);
 
-          return rowsAffected >= 0;
+                trx?.Commit();
+
+                return rowsAffected >= 0;
+            }
+            catch (Exception ex)
+            {
+                Log(resource, "Failed to remove lock", ex);
+                return false;
+            }
+            finally
+            {
+                trx?.Dispose();
+            }
         }
-        catch (Exception ex)
-        {
-          Log(resource, "Failed to remove lock", ex);
-          return false;
-        }
-        finally
-        {
-          trx?.Dispose();
-        }
-      }
     }
 
     private static class TransactionLockHandler
     {
-      public static bool TryLock(IDbConnection connection, string schemaName, string resource)
-      {
-        IDbTransaction trx = null;
-        try
+        public static bool TryLock(IDbConnection connection, string schemaName, string resource)
         {
-          trx = BeginTransactionIfNotPresent(connection);
+            IDbTransaction trx = null;
+            try
+            {
+                trx = BeginTransactionIfNotPresent(connection);
 
-          int rowsAffected = connection.Execute($@"
+                var rowsAffected = connection.Execute($@"
                 INSERT INTO ""{schemaName}"".""lock""(""resource"", ""acquired"") 
                 SELECT @Resource, @Acquired
                 WHERE NOT EXISTS (
@@ -217,34 +224,35 @@ namespace Hangfire.Cockroach
                 )
                 ON CONFLICT DO NOTHING;
               ",
-            new {
-              Resource = resource,
-              Acquired = DateTime.UtcNow,
-            }, trx);
-          trx?.Commit();
+                  new
+                  {
+                      Resource = resource,
+                      Acquired = DateTime.UtcNow,
+                  }, trx);
+                trx?.Commit();
 
-          return rowsAffected > 0;
+                return rowsAffected > 0;
+            }
+            finally
+            {
+                trx?.Dispose();
+            }
         }
-        finally
+
+        [CanBeNull]
+        public static IDbTransaction BeginTransactionIfNotPresent(IDbConnection connection)
         {
-          trx?.Dispose();
+            // If transaction scope was created outside of hangfire, the newly-opened connection is automatically enlisted into the transaction.
+            // Starting a new transaction throws "A transaction is already in progress; nested/concurrent transactions aren't supported." in that case.
+            return Transaction.Current == null ? connection.BeginTransaction(IsolationLevel.ReadCommitted) : null;
         }
-      }
-
-      [CanBeNull]
-      public static IDbTransaction BeginTransactionIfNotPresent(IDbConnection connection)
-      {
-        // If transaction scope was created outside of hangfire, the newly-opened connection is automatically enlisted into the transaction.
-        // Starting a new transaction throws "A transaction is already in progress; nested/concurrent transactions aren't supported." in that case.
-        return Transaction.Current == null ? connection.BeginTransaction(IsolationLevel.ReadCommitted) : null;
-      }
     }
 
     private static class UpdateCountLockHandler
     {
-      public static bool TryLock(IDbConnection connection, string schemaName, string resource)
-      {
-        connection.Execute($@"
+        public static bool TryLock(IDbConnection connection, string schemaName, string resource)
+        {
+            connection.Execute($@"
               INSERT INTO ""{schemaName}"".""lock""(""resource"", ""updatecount"", ""acquired"") 
               SELECT @Resource, 0, @Acquired
               WHERE NOT EXISTS (
@@ -252,17 +260,17 @@ namespace Hangfire.Cockroach
                   WHERE ""resource"" = @Resource
               )
               ON CONFLICT DO NOTHING;
-            ", new {
-          Resource = resource,
-          Acquired = DateTime.UtcNow,
-        });
+            ", new
+            {
+                Resource = resource,
+                Acquired = DateTime.UtcNow,
+            });
 
-        int rowsAffected = connection.Execute(
-          $@"UPDATE ""{schemaName}"".""lock"" SET ""updatecount"" = 1 WHERE ""updatecount"" = 0 AND ""resource"" = @Resource",
-          new { Resource = resource });
+            var rowsAffected = connection.Execute(
+              $@"UPDATE ""{schemaName}"".""lock"" SET ""updatecount"" = 1 WHERE ""updatecount"" = 0 AND ""resource"" = @Resource",
+              new { Resource = resource });
 
-        return rowsAffected > 0;
-      }
+            return rowsAffected > 0;
+        }
     }
-  }
 }
