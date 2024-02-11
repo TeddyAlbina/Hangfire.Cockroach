@@ -11,7 +11,7 @@ on:
 env:
   Hangfire_Cockroach_DatabaseName: defaultdb
   Hangfire_Cockroach_SchemaName: hangfire
-  Hangfire_Cockroach_ConnectionStringTemplate: 'Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true'
+  Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true"
 
 permissions: write-all
 
@@ -25,7 +25,11 @@ jobs:
         env:
           TZ: UTC
           PGTZ: UTC
-        command: start-single-node --insecure --listen-addr=localhost:26257 --http-addr=localhost:8080
+        options: >-
+          start-single-node
+          --insecure
+          --listen-addr=localhost:26257
+          --http-addr=localhost:8080
         ports:
           - 26257:26257
           - 8080:8080
