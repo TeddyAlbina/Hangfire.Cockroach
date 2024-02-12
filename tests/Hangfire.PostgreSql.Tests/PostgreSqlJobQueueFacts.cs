@@ -552,7 +552,7 @@ namespace Hangfire.Cockroach.Tests
 
         private static CancellationToken CreateTimingOutCancellationToken()
         {
-            CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            CancellationTokenSource source = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             return source.Token;
         }
 

@@ -8,36 +8,28 @@ on:
       - "src/**"
       - "test/**"
 
-env:
-  Hangfire_Cockroach_DatabaseName: defaultdb
-  Hangfire_Cockroach_SchemaName: hangfire
-  Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; SSL Mode=disable;Include Error Detail=true"
-
+ 
 permissions: write-all
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
-    services:
-      cockroachdb:
-        image: cockroachdb/cockroach
-        env:
-          TZ: UTC
-          PGTZ: UTC
-        options: >-
-          start-single-node
-          --insecure
-          --listen-addr=localhost:26257
-          --http-addr=localhost:8080
-          --logtostderr
-        ports:
-          - 26257:26257
-          - 8080:8080
-        volumes:
-          - "${PWD}/cockroach-data/crdb:/cockroach/cockroach-data"
-
+ 
     steps:
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Start a single CockroachDB instance
+        run: |
+            docker pull cockroachdb/cockroach
+            docker run -d --name roach --hostname roach -p 26257:26257 -p 8080:8080 cockroachdb/cockroach start-single-node --insecure
+            sudo apt update && sudo apt install wait-for-it -y
+            wait-for-it -h localhost -p 26257
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
