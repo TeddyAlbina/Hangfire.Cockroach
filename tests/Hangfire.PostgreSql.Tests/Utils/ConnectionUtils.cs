@@ -73,9 +73,9 @@ namespace Hangfire.Cockroach.Tests.Utils
             return connection;
         }
 
-        private static string? GetEnvVariable(string name)
+        private static string GetEnvVariable(string name)
         {
-            string? value = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
+            var value = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
 
             if (string.IsNullOrWhiteSpace(value))
             {
