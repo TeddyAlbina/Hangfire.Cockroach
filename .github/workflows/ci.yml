@@ -44,6 +44,11 @@ jobs:
         run: dotnet build --no-restore
       - name: Test
         run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=TestResults.trx"
+        env:
+          Hangfire_Cockroach_DatabaseName: defaultdb
+          Hangfire_Cockroach_SchemaName: hangfire
+          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb;  Username=root; Include Error Detail=true"
+
       - name: Test Report
         uses: actions/upload-artifact@v2
         if: success() || failure()
