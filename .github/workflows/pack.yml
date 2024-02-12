@@ -69,7 +69,7 @@ jobs:
       - name: Start a single CockroachDB instance
         run: |
             docker pull cockroachdb/cockroach
-            docker run -d --name roach --hostname roach -p 26257:26257 -p 8080:8080 cockroachdb/cockroach start-single-node --insecure
+            docker run -d --name roach --hostname roach -p 26257:26257 -p 8080:8080 --env COCKROACH_USER=guest --env COCKROACH_PASSWORD=guest cockroachdb/cockroach start-single-node --insecure
             sudo apt update && sudo apt install wait-for-it -y
             wait-for-it -h localhost -p 26257
             #docker exec roach bash -c "echo 'CREATE DATABASE sequelize_test;' | $CONTAINER_ENTRYPOINT sql --insecure"
@@ -95,7 +95,7 @@ jobs:
         env:
           Hangfire_Cockroach_DatabaseName: defaultdb
           Hangfire_Cockroach_SchemaName: hangfire
-          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb; Include Error Detail=true"
+          Hangfire_Cockroach_ConnectionStringTemplate: "Host=localhost; Port=26257; Database=defaultdb;  Username=guest; Password=guest; Include Error Detail=true"
 
       - name: Test Report
         uses: dorny/test-reporter@v1
