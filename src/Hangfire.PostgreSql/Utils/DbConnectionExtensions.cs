@@ -5,27 +5,30 @@ namespace Hangfire.Cockroach.Utils;
 
 internal static class DbConnectionExtensions
 {
-    private static bool? supportsNotifications;
+    //private static bool supportsNotifications = false;
 
+    //todo: update it once notification is fixed on day
     internal static bool SupportsNotifications(this IDbConnection connection)
     {
-        if (supportsNotifications.HasValue)
-        {
-            return supportsNotifications.Value;
-        }
+        return false;
 
-        if (connection is not NpgsqlConnection npgsqlConnection)
-        {
-            supportsNotifications = false;
-            return false;
-        }
+        //if (supportsNotifications.HasValue)
+        //{
+        //    return supportsNotifications.Value;
+        //}
 
-        if (npgsqlConnection.State != ConnectionState.Open)
-        {
-            npgsqlConnection.Open();
-        }
+        //if (connection is not NpgsqlConnection npgsqlConnection)
+        //{
+        //    supportsNotifications = false;
+        //    return false;
+        //}
 
-        supportsNotifications = npgsqlConnection.PostgreSqlVersion.Major >= 11;
-        return supportsNotifications.Value;
+        //if (npgsqlConnection.State != ConnectionState.Open)
+        //{
+        //    npgsqlConnection.Open();
+        //}
+
+        //supportsNotifications = npgsqlConnection.PostgreSqlVersion.Major >= 11;
+        //return supportsNotifications.Value;
     }
 }

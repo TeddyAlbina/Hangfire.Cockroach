@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Cockroach storage implementation for Hangfire (background job system for ASP.NET and aspnet core applications).</Description>
-    <Copyright>Copyright © 2014-2021 Teddy Albina</Copyright>
+    <Copyright>Copyright © 2024 Teddy Albina</Copyright>
     <AssemblyTitle>Hangfire Cockroach Storage</AssemblyTitle>
     <VersionPrefix>1.9.4</VersionPrefix>
     <Authors>Teddy Albina</Authors>

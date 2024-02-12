@@ -27,7 +27,7 @@ public static class CockroachBootstrapperConfigurationExtensions
 {
 
     /// <summary>
-    /// Tells the bootstrapper to use PostgreSQL as the job storage with the default storage options.
+    /// Tells the bootstrapper to use Cockroach as the job storage with the default storage options.
     /// </summary>
     /// <param name="configuration">Configuration instance.</param>
     /// <param name="configure">Bootstrapper configuration action.</param>
@@ -38,7 +38,7 @@ public static class CockroachBootstrapperConfigurationExtensions
     }
 
     /// <summary>
-    /// Tells the bootstrapper to use PostgreSQL as the job storage with the specified storage options.
+    /// Tells the bootstrapper to use Cockroach as the job storage with the specified storage options.
     /// </summary>
     /// <param name="configuration">Configuration instance.</param>
     /// <param name="configure">Bootstrapper configuration action.</param>
